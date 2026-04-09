@@ -1,0 +1,17 @@
+[
+  {
+    "model": "models.user.Role",
+    "id": 1,
+    "fields": {
+      "name": "user"
+    }
+  },
+  {
+    "model": "models.user.Role",
+    "id": 2,
+    "fields": {
+      "name": "admin"
+    }
+  }
+]
+
