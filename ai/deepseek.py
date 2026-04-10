@@ -1,4 +1,4 @@
-from __future__ import annotations
+
 
 from dataclasses import dataclass
 
@@ -8,12 +8,12 @@ from ai.contracts import LLMClient
 from core.exceptions import InvalidLLMResponseError
 
 
-
 @dataclass
 class DeepSeekClient(LLMClient):
     client: AsyncOpenAI
     model: str
 
+    # noinspection PyTypeChecker
     async def complete(
         self,
         system: str,

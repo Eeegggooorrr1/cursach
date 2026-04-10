@@ -15,8 +15,6 @@ router = APIRouter(prefix="/auth", tags=["auth"], route_class=DishkaRoute)
 security = HTTPBearer(auto_error=True)
 
 
-
-
 @router.post(
     "/login",
 )
@@ -44,11 +42,14 @@ async def register(
     cookie_manager: FromDishka[CookieManager],
 ) -> dict[str, str]:
 
-    access_token, refresh_token = await auth_service.register(user.email, user.password, user.username)
+    access_token, refresh_token = await auth_service.register(
+        user.email, user.password, user.username
+    )
 
     cookie_manager.set_auth_cookies(response, access_token, refresh_token)
 
     return {"msg": "ok"}
+
 
 @router.post(
     "/refresh",
@@ -60,7 +61,9 @@ async def refresh_tokens(
     security_service: FromDishka[SecurityService],
     cookie_manager: FromDishka[CookieManager],
 ):
-    access_token, new_refresh_token = await security_service.refresh_tokens(refresh_token)
+    access_token, new_refresh_token = await security_service.refresh_tokens(
+        refresh_token
+    )
     cookie_manager.set_auth_cookies(response, access_token, new_refresh_token)
 
     return {"msg": "ok"}

@@ -14,8 +14,10 @@ class UserCreateSchema(BaseModel):
     password: str
     role: RoleEnum | None = None
 
+
 class UserUpdateSchema(BaseModel):
     username: str | None = None
+
 
 class UserFilterSchema(BaseModel):
     email: EmailStr | None = None

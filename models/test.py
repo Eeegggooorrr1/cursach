@@ -1,4 +1,4 @@
-from __future__ import annotations
+
 
 from enum import StrEnum
 
@@ -17,6 +17,10 @@ class TestStatusEnum(StrEnum):
 class Test(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     topic: Mapped[str] = mapped_column(String, nullable=False)
     questions_count: Mapped[int] = mapped_column(Integer, nullable=False)
     options_count: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -36,6 +40,7 @@ class Test(Base):
         cascade="all, delete-orphan",
         order_by="Question.position",
     )
+    user: Mapped["User"] = relationship("User", back_populates="tests")
 
 
 class Question(Base):
@@ -44,7 +49,6 @@ class Question(Base):
     test_id: Mapped[int] = mapped_column(
         ForeignKey("tests.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
@@ -63,11 +67,9 @@ class AnswerOption(Base):
     question_id: Mapped[int] = mapped_column(
         ForeignKey("questions.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     question: Mapped[Question] = relationship(back_populates="options")
-

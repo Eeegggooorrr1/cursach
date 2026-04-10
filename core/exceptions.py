@@ -83,6 +83,7 @@ class InvalidCredentialsError(AuthenticationError):
     code = "invalid_credentials"
     message = "Invalid credentials"
 
+
 class InvalidLoginOrPasswordError(AuthenticationError):
     code = "invalid_login_or_password"
     message = "Invalid login or password"
@@ -93,34 +94,9 @@ class UserNotFoundError(NotFoundError):
     message = "User not found"
 
 
-class DoctorNotFoundError(NotFoundError):
-    code = "doctor_not_found"
-    message = "Doctor not found"
-
-
 class UserAlreadyExistsError(ConflictError):
     code = "user_already_exists"
     message = "User already exists"
-
-
-class AppointmentAlreadyExistsError(ConflictError):
-    code = "appointment_already_exists"
-    message = "Appointment already exists"
-
-
-class DoctorAlreadyExistsError(ConflictError):
-    code = "doctor_already_exists"
-    message = "Doctor already exists"
-
-
-class DoctorSlotBusyError(ConflictError):
-    code = "doctor_slot_busy"
-    message = "Doctor slot busy"
-
-
-class VerificationError(BadRequestError):
-    code = "verification_failed"
-    message = "Verification failed"
 
 
 class ExternalServiceError(AppError):
@@ -129,26 +105,17 @@ class ExternalServiceError(AppError):
     message = "External service error"
 
 
-class AppointmentNotFoundError(NotFoundError):
-    code = "appointment_not_found"
-    message = "Appointment not found"
+
+class TestNotFoundError(NotFoundError):
+    code = "test_not_found"
+    message = "Test not found"
 
 
-class AppointmentCannotBeCancelledError(BadRequestError):
-    code = "appointment_cannot_be_cancelled"
-    message = "Appointment cannot be cancelled"
+class InvalidGeneratedTestError(ExternalServiceError):
+    code = "invalid_generated_test"
+    message = "Generated test is invalid"
 
 
-class AppointmentStatusTransitionError(BadRequestError):
-    code = "invalid_appointment_status_transition"
-    message = "Invalid appointment status transition"
-
-
-class TestNotFoundError(Exception):
-    pass
-
-class InvalidGeneratedTestError(Exception):
-    pass
-
-class InvalidLLMResponseError(Exception):
-    pass
+class InvalidLLMResponseError(ExternalServiceError):
+    code = "invalid_llm_response"
+    message = "LLM response is invalid"

@@ -1,8 +1,12 @@
 from typing import AsyncIterator
 
 from dishka import Provider, provide, Scope
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, \
-    async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    create_async_engine,
+    async_sessionmaker,
+    AsyncSession,
+)
 
 from core.config import Settings
 

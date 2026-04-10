@@ -5,7 +5,7 @@ import hmac
 import secrets
 import string
 
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
 from passlib.context import CryptContext
 
 from core.config import Settings
@@ -91,8 +91,10 @@ class SecurityService:
                 self.settings.SECRET_KEY,
                 algorithms=[self.settings.ALGORITHM],
             )
-        except JWTError:
-            raise TokenError("Token decode failed")
+        except ExpiredSignatureError as exc:
+            raise TokenExpiredError() from exc
+        except JWTError as exc:
+            raise TokenError("Token decode failed") from exc
 
         user_id = payload.get("sub")
         if not user_id:

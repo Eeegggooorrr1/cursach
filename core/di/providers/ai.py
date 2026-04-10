@@ -3,8 +3,7 @@ from openai import AsyncOpenAI
 
 from ai.contracts import LLMClient
 from ai.deepseek import DeepSeekClient
-from ai.prompts.test_generation.factory import \
-    TestGenerationPromptFactory
+from ai.prompts.test_generation.factory import TestGenerationPromptFactory
 from core.config import Settings
 
 

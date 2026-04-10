@@ -10,6 +10,7 @@ from exception_handlers import app_error_handler, exception_handler
 from handlers.auth import router as auth_router
 from handlers.tests import router as tests_router
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield

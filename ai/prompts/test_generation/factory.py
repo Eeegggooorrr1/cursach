@@ -21,14 +21,15 @@ class TestGenerationPromptFactory:
         system_template = self._read("system.txt")
         user_template = self._read("user.txt")
 
-        system = system_template \
-            .replace("{questions_count}", str(questions_count)) \
-            .replace("{options_count}", str(options_count))
+        system = system_template.replace(
+            "{questions_count}", str(questions_count)
+        ).replace("{options_count}", str(options_count))
 
-        user = user_template \
-            .replace("{topic}", topic) \
-            .replace("{questions_count}", str(questions_count)) \
+        user = (
+            user_template.replace("{topic}", topic)
+            .replace("{questions_count}", str(questions_count))
             .replace("{options_count}", str(options_count))
+        )
 
         return Prompt(
             system=system,

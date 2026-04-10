@@ -1,4 +1,5 @@
 from dishka import Provider, provide, Scope, FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import HTTPException
 from starlette import status
 from starlette.requests import Request
@@ -9,13 +10,13 @@ from schemas.auth import UserFromToken
 from services.security import SecurityService
 
 
-
 class AccessToken(str):
     pass
 
 
 class RefreshToken(str):
     pass
+
 
 class AuthProvider(Provider):
     @provide(scope=Scope.REQUEST)
@@ -27,7 +28,6 @@ class AuthProvider(Provider):
                 detail="Access token not found",
             )
         return AccessToken(token)
-
 
     @provide(scope=Scope.REQUEST)
     def refresh_token(self, request: Request) -> RefreshToken:
@@ -61,6 +61,7 @@ class RequireRoles:
     def __init__(self, *allowed_roles: RoleEnum):
         self.allowed: set[RoleEnum] = set(allowed_roles)
 
+    @inject
     async def __call__(
         self,
         user: FromDishka[UserFromToken],
@@ -74,5 +75,3 @@ class RequireRoles:
                 },
             )
         return user
-
-

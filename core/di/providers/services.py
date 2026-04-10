@@ -3,8 +3,7 @@ from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.contracts import LLMClient
-from ai.prompts.test_generation.factory import \
-    TestGenerationPromptFactory
+from ai.prompts.test_generation.factory import TestGenerationPromptFactory
 from cli.bootstrap.seed_service import SeedService
 from core.config import Settings
 from repositories.refresh_token import RefreshTokenRepository
@@ -29,7 +28,7 @@ class ServicesProvider(Provider):
             user_repository=user_repository,
             refresh_repository=refresh_repository,
             settings=settings,
-            pwd_context=pwd_context
+            pwd_context=pwd_context,
         )
 
     @provide(scope=Scope.REQUEST)
@@ -53,10 +52,10 @@ class ServicesProvider(Provider):
 
     @provide(scope=Scope.REQUEST)
     def test_service(
-            self,
-            test_repository: TestRepository,
-            llm_client: LLMClient,
-            test_prompt_factory: TestGenerationPromptFactory,
+        self,
+        test_repository: TestRepository,
+        llm_client: LLMClient,
+        test_prompt_factory: TestGenerationPromptFactory,
     ) -> TestService:
         return TestService(
             test_repository=test_repository,

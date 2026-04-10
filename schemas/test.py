@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 
 class TestCreateSchema(BaseModel):
     topic: str
-    questions_count: int = Field(ge=1)
-    options_count: int = Field(ge=2)
+    questions_count: int = Field(ge=1, le=20)
+    options_count: int = Field(ge=2, le=8)
 
 
 class TestOptionReadSchema(BaseModel):
@@ -22,6 +22,7 @@ class TestQuestionReadSchema(BaseModel):
 
 class TestReadSchema(BaseModel):
     id: int
+    user_id: int
     topic: str
     questions_count: int
     options_count: int

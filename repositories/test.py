@@ -18,12 +18,14 @@ class TestRepository:
         topic: str,
         questions_count: int,
         options_count: int,
+        user_id: int,
     ) -> Test:
         test = Test(
             topic=topic,
             questions_count=questions_count,
             options_count=options_count,
             status=TestStatusEnum.generating,
+            user_id=user_id,
         )
         self.session.add(test)
         await self.session.flush()
@@ -53,7 +55,9 @@ class TestRepository:
                     AnswerOption(
                         position=option_position,
                         text=option_text.strip(),
-                        is_correct=(option_position == question_data.correct_option_index),
+                        is_correct=(
+                            option_position == question_data.correct_option_index
+                        ),
                     )
                 )
 

@@ -25,6 +25,8 @@ class CookieManager:
             samesite="lax",
         )
 
-    def set_auth_cookies(self, response: Response, access_token: str, refresh_token: str):
+    def set_auth_cookies(
+        self, response: Response, access_token: str, refresh_token: str
+    ):
         self._set_access_token(response, access_token)
         self._set_refresh_token(response, refresh_token)
