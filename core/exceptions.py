@@ -119,3 +119,8 @@ class InvalidGeneratedTestError(ExternalServiceError):
 class InvalidLLMResponseError(ExternalServiceError):
     code = "invalid_llm_response"
     message = "LLM response is invalid"
+
+
+class InvalidCourseStructureError(Exception):
+    pass
+

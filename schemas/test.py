@@ -26,5 +26,4 @@ class TestReadSchema(BaseModel):
     topic: str
     questions_count: int
     options_count: int
-    status: str
     questions: list[TestQuestionReadSchema]

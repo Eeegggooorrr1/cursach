@@ -9,7 +9,7 @@ from core.exceptions import AppError
 from exception_handlers import app_error_handler, exception_handler
 from handlers.auth import router as auth_router
 from handlers.tests import router as tests_router
-
+from handlers.courses import router as courses_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,9 +21,11 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(auth_router)
 app.include_router(tests_router)
+app.include_router(courses_router)
 
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, exception_handler)
+
 
 app.add_middleware(
     CORSMiddleware,

@@ -8,12 +8,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base
 
 
-class TestStatusEnum(StrEnum):
-    generating = "generating"
-    ready = "ready"
-    failed = "failed"
-
-
 class Test(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -24,11 +18,7 @@ class Test(Base):
     topic: Mapped[str] = mapped_column(String, nullable=False)
     questions_count: Mapped[int] = mapped_column(Integer, nullable=False)
     options_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    status: Mapped[TestStatusEnum] = mapped_column(
-        String,
-        nullable=False,
-        default=TestStatusEnum.generating,
-    )
+
     created_at: Mapped[str] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

@@ -12,6 +12,7 @@ from models.refresh_token import RefreshToken
 from models.user import User
 from models.user import Role
 from models.test import Test, Question, AnswerOption
+from models.course import Course, Topic, Subtopic
 
 settings = Settings()
 # this is the Alembic Config object, which provides

@@ -3,14 +3,18 @@ from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.contracts import LLMClient
-from ai.prompts.test_generation.factory import TestGenerationPromptFactory
+from ai.factories.course_generation_factory import \
+    CourseGenerationPromptFactory
+from ai.factories.test_generation_factory import TestGenerationPromptFactory
 from cli.bootstrap.seed_service import SeedService
 from core.config import Settings
+from repositories.course import CourseRepository
 from repositories.refresh_token import RefreshTokenRepository
 from repositories.test import TestRepository
 from repositories.user import UserRepository
 from services.auth import AuthService
 from services.cookie import CookieManager
+from services.course import CourseService, CourseGenerationPolicy
 from services.security import SecurityService
 from services.test import TestService
 
@@ -62,3 +66,22 @@ class ServicesProvider(Provider):
             llm_client=llm_client,
             prompt_factory=test_prompt_factory,
         )
+
+    @provide(scope=Scope.REQUEST)
+    def course_service(
+            self,
+            course_repository: CourseRepository,
+            llm_client: LLMClient,
+            course_prompt_factory: CourseGenerationPromptFactory,
+            course_policy: CourseGenerationPolicy,
+    ) -> CourseService:
+        return CourseService(
+            course_repository=course_repository,
+            llm_client=llm_client,
+            prompt_factory=course_prompt_factory,
+            course_policy=course_policy,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def course_policy(self) -> CourseGenerationPolicy:
+        return CourseGenerationPolicy()

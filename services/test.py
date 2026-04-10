@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 
 from ai.contracts import GeneratedTestSchema, LLMClient
-from ai.prompts.test_generation.factory import TestGenerationPromptFactory
+from ai.factories.test_generation_factory import TestGenerationPromptFactory
 from core.exceptions import (
     InvalidGeneratedTestError,
     InvalidLLMResponseError,
@@ -25,60 +25,49 @@ class TestService:
         options_count: int,
         user_id: int,
     ):
+        prompt = self.prompt_factory.build(
+            topic=topic,
+            questions_count=questions_count,
+            options_count=options_count,
+        )
 
-        draft = await self.test_repository.create_draft_test(
+        try:
+            raw_answer = await self.llm_client.complete(
+                system=prompt.system,
+                user=prompt.user,
+                temperature=0.0,
+            )
+        except Exception as exc:
+            raise InvalidLLMResponseError(
+                message="LLM request failed"
+            ) from exc
+
+        try:
+            generated = GeneratedTestSchema.model_validate_json(raw_answer)
+        except ValidationError as exc:
+            raise InvalidLLMResponseError(
+                message="LLM returned invalid JSON/schema"
+            ) from exc
+
+        self._validate_generated_test(
+            generated=generated,
+            expected_questions=questions_count,
+            expected_options=options_count,
+        )
+
+        test = await self.test_repository.create_test(
             topic=topic,
             questions_count=questions_count,
             options_count=options_count,
             user_id=user_id,
+            generated=generated,
         )
 
-        try:
-            prompt = self.prompt_factory.build(
-                topic=topic,
-                questions_count=questions_count,
-                options_count=options_count,
-            )
+        full_test = await self.test_repository.get_test_with_details(test.id)
+        if not full_test:
+            raise TestNotFoundError()
 
-            try:
-                raw_answer = await self.llm_client.complete(
-                    system=prompt.system,
-                    user=prompt.user,
-                    temperature=0.0,
-                )
-            except Exception as exc:
-                raise InvalidLLMResponseError(
-                    message="LLM request failed"
-                ) from exc
-
-            try:
-                generated = GeneratedTestSchema.model_validate_json(
-                    raw_answer)
-            except ValidationError as exc:
-                raise InvalidLLMResponseError(
-                    message="LLM returned invalid JSON/schema"
-                ) from exc
-
-            self._validate_generated_test(
-                generated=generated,
-                expected_questions=questions_count,
-                expected_options=options_count,
-            )
-
-            test = await self.test_repository.save_generated_test(
-                test_id=draft.id,
-                generated=generated,
-            )
-
-            full_test = await self.test_repository.get_test_with_details(
-                test.id)
-            if not full_test:
-                raise TestNotFoundError()
-
-            return full_test
-
-        except Exception:
-            raise
+        return full_test
 
     @staticmethod
     def _validate_generated_test(
