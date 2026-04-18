@@ -35,6 +35,10 @@ class CourseService:
         comment: str | None,
         topics: list[str],
     ):
+
+        # TODO: занести сложности подтем в subtopic_progress,
+        #  занести режим в курс, при проверке не менять метрики, если режим статичный
+
         course = await self.course_repository.create_course(
             user_id=user_id,
             title=title,
