@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+
+from models import Question
 
 
 class TestCreateSchema(BaseModel):
@@ -8,22 +10,28 @@ class TestCreateSchema(BaseModel):
 
 
 class TestOptionReadSchema(BaseModel):
-    id: int
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
     text: str
-    is_correct: bool
+
 
 
 class TestQuestionReadSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
     id: int
-    position: int
-    text: str
-    options: list[TestOptionReadSchema]
+    subtopic_id: int
+    prompt: str
+    options: list[TestOptionReadSchema] = Field(
+        validation_alias="answer_options",
+    )
+
 
 
 class TestReadSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
     id: int
-    user_id: int
-    topic: str
-    questions_count: int
-    options_count: int
+    course_id: int
+    position: int
+    title: str
     questions: list[TestQuestionReadSchema]

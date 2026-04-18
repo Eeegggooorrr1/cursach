@@ -2,7 +2,8 @@
 
 from enum import StrEnum
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, \
+    String, Text, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -11,26 +12,23 @@ from models.base import Base
 class Test(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
+    course_id: Mapped[int] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
-    topic: Mapped[str] = mapped_column(String, nullable=False)
-    questions_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    options_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    created_at: Mapped[str] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-
+    course: Mapped["Course"] = relationship(back_populates="tests")
     questions: Mapped[list["Question"]] = relationship(
         back_populates="test",
         cascade="all, delete-orphan",
-        order_by="Question.position",
     )
-    user: Mapped["User"] = relationship("User", back_populates="tests")
+
+    __table_args__ = (
+        UniqueConstraint("course_id", "position", name="uq_tests_course_position"),
+    )
 
 
 class Question(Base):
@@ -39,15 +37,25 @@ class Question(Base):
     test_id: Mapped[int] = mapped_column(
         ForeignKey("tests.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
+    subtopic_id: Mapped[int] = mapped_column(
+        ForeignKey("subtopics.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    prompt: Mapped[str] = mapped_column(Text, nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
-    text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    test: Mapped[Test] = relationship(back_populates="questions")
-    options: Mapped[list["AnswerOption"]] = relationship(
+    test: Mapped["Test"] = relationship(back_populates="questions")
+    subtopic: Mapped["Subtopic"] = relationship(back_populates="questions")
+    answer_options: Mapped[list["AnswerOption"]] = relationship(
         back_populates="question",
         cascade="all, delete-orphan",
-        order_by="AnswerOption.position",
+    )
+
+    __table_args__ = (
+        UniqueConstraint("test_id", "position", name="uq_questions_test_position"),
     )
 
 
@@ -57,9 +65,14 @@ class AnswerOption(Base):
     question_id: Mapped[int] = mapped_column(
         ForeignKey("questions.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
-    position: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    question: Mapped[Question] = relationship(back_populates="options")
+    question: Mapped["Question"] = relationship(back_populates="answer_options")
+
+    __table_args__ = (
+        UniqueConstraint("question_id", "position", name="uq_answer_options_question_position"),
+    )

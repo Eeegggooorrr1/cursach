@@ -36,7 +36,6 @@ class AIProvider(Provider):
             base_url=settings.DEEPSEEK_URL,
         )
 
-
     @provide(scope=Scope.REQUEST)
     def llm_client(
         self,

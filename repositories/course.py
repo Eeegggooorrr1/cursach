@@ -66,3 +66,8 @@ class CourseRepository:
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def get_course_by_id(self, course_id: int) -> Course | None:
+        stmt = select(Course).where(Course.id == course_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()

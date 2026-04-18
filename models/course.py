@@ -1,8 +1,22 @@
+from datetime import datetime
+from enum import Enum
+
 from sqlalchemy import ForeignKey, Index, Integer, String, Text, \
-    DateTime, func
+    DateTime, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+
+
+class DifficultyEnum(str, Enum):
+    EASY = "Easy"
+    MEDIUM = "Medium"
+    HARD = "Hard"
+
+class DifficultyModeEnum(str, Enum):
+    STATIC = "Static"
+    DYNAMIC = "Dynamic"
+
 
 class Course(Base):
 
@@ -13,7 +27,7 @@ class Course(Base):
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
@@ -23,8 +37,12 @@ class Course(Base):
         back_populates="course",
         cascade="all, delete-orphan",
     )
-    user: Mapped["User"] = relationship("User",
-                                        back_populates="courses")
+    tests: Mapped[list["Test"]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan",
+    )
+    user: Mapped["User"] = relationship("User", back_populates="courses")
+
 
 class Topic(Base):
 
@@ -36,11 +54,16 @@ class Topic(Base):
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
 
-    course: Mapped[Course] = relationship(back_populates="topics")
+    course: Mapped["Course"] = relationship(back_populates="topics")
     subtopics: Mapped[list["Subtopic"]] = relationship(
         back_populates="topic",
         cascade="all, delete-orphan",
     )
+
+    __table_args__ = (
+        UniqueConstraint("course_id", "name", name="uq_topics_course_name"),
+    )
+
 
 class Subtopic(Base):
 
@@ -52,4 +75,9 @@ class Subtopic(Base):
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
 
-    topic: Mapped[Topic] = relationship(back_populates="subtopics")
+    topic: Mapped["Topic"] = relationship(back_populates="subtopics")
+    questions: Mapped[list["Question"]] = relationship(back_populates="subtopic")
+
+    __table_args__ = (
+        UniqueConstraint("topic_id", "name", name="uq_subtopics_topic_name"),
+    )

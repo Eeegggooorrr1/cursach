@@ -9,8 +9,12 @@ from ai.factories.test_generation_factory import TestGenerationPromptFactory
 from cli.bootstrap.seed_service import SeedService
 from core.config import Settings
 from repositories.course import CourseRepository
+from repositories.course_progress import CourseProgressRepository
 from repositories.refresh_token import RefreshTokenRepository
+from repositories.subtopic import SubtopicRepository
+from repositories.subtopic_progress import SubtopicProgressRepository
 from repositories.test import TestRepository
+from repositories.test_progress import TestProgressRepository
 from repositories.user import UserRepository
 from services.auth import AuthService
 from services.cookie import CookieManager
@@ -57,14 +61,24 @@ class ServicesProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def test_service(
         self,
+        course_repository: CourseRepository,
+        course_progress_repository: CourseProgressRepository,
+        subtopic_progress_repository: SubtopicProgressRepository,
+        test_progress_repository: TestProgressRepository,
+        subtopic_repository: SubtopicRepository,
         test_repository: TestRepository,
         llm_client: LLMClient,
-        test_prompt_factory: TestGenerationPromptFactory,
+        prompt_factory: TestGenerationPromptFactory,
     ) -> TestService:
         return TestService(
+            course_repository=course_repository,
+            course_progress_repository=course_progress_repository,
+            subtopic_progress_repository=subtopic_progress_repository,
+            test_progress_repository=test_progress_repository,
+            subtopic_repository=subtopic_repository,
             test_repository=test_repository,
             llm_client=llm_client,
-            prompt_factory=test_prompt_factory,
+            prompt_factory=prompt_factory,
         )
 
     @provide(scope=Scope.REQUEST)

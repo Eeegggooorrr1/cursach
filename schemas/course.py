@@ -1,11 +1,16 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field, model_validator
 
+from models.course import DifficultyEnum, \
+    DifficultyModeEnum
+
 
 class CourseCreateSchema(BaseModel):
     title: str
     comment: str | None = None
     topics: list[str] = Field(min_length=1)
+    difficulty: DifficultyEnum = DifficultyEnum.EASY
+    difficulty_mode: DifficultyModeEnum = DifficultyModeEnum.STATIC
 
     @model_validator(mode="after")
     def validate_topics(self) -> CourseCreateSchema:

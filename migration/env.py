@@ -13,6 +13,7 @@ from models.user import User
 from models.user import Role
 from models.test import Test, Question, AnswerOption
 from models.course import Course, Topic, Subtopic
+from models.progress import CourseProgress, TestProgress, SubtopicProgress, QuestionAttempt
 
 settings = Settings()
 # this is the Alembic Config object, which provides

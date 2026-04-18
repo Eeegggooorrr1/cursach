@@ -94,6 +94,10 @@ class UserNotFoundError(NotFoundError):
     message = "User not found"
 
 
+class CourseNotFoundError(NotFoundError):
+    code = "course_not_found"
+    message = "Course not found"
+
 class UserAlreadyExistsError(ConflictError):
     code = "user_already_exists"
     message = "User already exists"
