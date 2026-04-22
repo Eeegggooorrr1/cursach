@@ -1,7 +1,11 @@
-from datetime import date
 from enum import Enum
 
-from sqlalchemy import BigInteger, Enum as SQLAlchemyEnum, ForeignKey, Integer, String
+from sqlalchemy import (
+    BigInteger,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -22,7 +26,9 @@ class Role(Base):
 
 class User(Base):
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True
+    )
 
     email: Mapped[str]
     password: Mapped[str]

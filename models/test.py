@@ -1,9 +1,11 @@
-
-
-from enum import StrEnum
-
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, \
-    String, Text, func, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -27,7 +29,9 @@ class Test(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("course_id", "position", name="uq_tests_course_position"),
+        UniqueConstraint(
+            "course_id", "position", name="uq_tests_course_position"
+        ),
     )
 
 
@@ -55,7 +59,9 @@ class Question(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("test_id", "position", name="uq_questions_test_position"),
+        UniqueConstraint(
+            "test_id", "position", name="uq_questions_test_position"
+        ),
     )
 
 
@@ -68,11 +74,19 @@ class AnswerOption(Base):
         index=True,
     )
     text: Mapped[str] = mapped_column(Text, nullable=False)
-    is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_correct: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    question: Mapped["Question"] = relationship(back_populates="answer_options")
+    question: Mapped["Question"] = relationship(
+        back_populates="answer_options"
+    )
 
     __table_args__ = (
-        UniqueConstraint("question_id", "position", name="uq_answer_options_question_position"),
+        UniqueConstraint(
+            "question_id",
+            "position",
+            name="uq_answer_options_question_position",
+        ),
     )

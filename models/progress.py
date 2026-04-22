@@ -1,23 +1,33 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
+from enum import Enum
 
 from sqlalchemy import (
     Boolean,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     String,
-    Text,
     UniqueConstraint,
     func,
-    select, Float,
+    Float,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+)
 
 from models.base import Base
 
+
+class TestProgressStatusEnum(str, Enum):
+    IN_PROGRESS = "in_progress"
+    FINISHED = "finished"
+
+class CourseProgressStatusEnum(str, Enum):
+    ACTIVE = "active"
+    FINISHED = "finished"
 
 class CourseProgress(Base):
     __tablename__ = "course_progress"
@@ -32,7 +42,9 @@ class CourseProgress(Base):
         nullable=False,
     )
 
-    status: Mapped[str] = mapped_column(String, nullable=False, default="active")
+    status: Mapped[str] = mapped_column(
+        String, nullable=False, default=CourseProgressStatusEnum.ACTIVE
+    )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -65,8 +77,12 @@ class TestProgress(Base):
         nullable=False,
         index=True,
     )
-
-    status: Mapped[str] = mapped_column(String, nullable=False, default="in_progress")
+    correct_percentage: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
+    status: Mapped[str] = mapped_column(
+        String, nullable=False, default=TestProgressStatusEnum.IN_PROGRESS
+    )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -78,7 +94,9 @@ class TestProgress(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("user_id", "test_id", name="uq_test_progress_user_test"),
+        UniqueConstraint(
+            "user_id", "test_id", name="uq_test_progress_user_test"
+        ),
     )
 
 
@@ -98,10 +116,15 @@ class SubtopicProgress(Base):
         index=True,
     )
 
-    mastery_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    current_difficulty: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    pass_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_seen_test_no: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    mastery_score: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
+    current_difficulty: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    current_streak: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -111,7 +134,9 @@ class SubtopicProgress(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("user_id", "subtopic_id", name="uq_subtopic_progress_user_subtopic"),
+        UniqueConstraint(
+            "user_id", "subtopic_id", name="uq_subtopic_progress_user_subtopic"
+        ),
     )
 
 
@@ -133,7 +158,9 @@ class QuestionAttempt(Base):
         ForeignKey("answer_options.id", ondelete="SET NULL"),
         nullable=True,
     )
-    is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_correct: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     answered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

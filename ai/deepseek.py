@@ -1,5 +1,3 @@
-
-
 from dataclasses import dataclass
 
 from openai import AsyncOpenAI
@@ -32,6 +30,6 @@ class DeepSeekClient(LLMClient):
 
         content = response.choices[0].message.content
         if not content:
-            raise InvalidLLMResponseError()
+            raise InvalidLLMResponseError("LLM returned an empty response")
 
         return content

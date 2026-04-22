@@ -1,7 +1,7 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.progress import CourseProgress
+from models.progress import CourseProgress, CourseProgressStatusEnum
 
 
 class CourseProgressRepository:
@@ -24,7 +24,7 @@ class CourseProgressRepository:
         self,
         course_id: int,
         user_id: int,
-        status: str = "active",
+        status: str = CourseProgressStatusEnum.ACTIVE,
     ) -> CourseProgress:
         progress = CourseProgress(
             course_id=course_id,
@@ -34,3 +34,21 @@ class CourseProgressRepository:
         self.session.add(progress)
         await self.session.flush()
         return progress
+
+    async def mark_completed(
+        self,
+        course_id: int,
+        user_id: int,
+    ) -> None:
+        stmt = (
+            update(CourseProgress)
+            .where(
+                CourseProgress.course_id == course_id,
+                CourseProgress.user_id == user_id,
+            )
+            .values(
+                status="completed",
+                completed_at=func.now(),
+            )
+        )
+        await self.session.execute(stmt)

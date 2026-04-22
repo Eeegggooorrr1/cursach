@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from importlib import resources
 from typing import Any
 
 from jinja2 import Environment
@@ -18,7 +17,7 @@ class TestGenerationPromptFactory:
         test_no: int,
         subtopics: list[dict[str, Any]],
         recent_tests_questions: list[str],
-        options_count: int = 3,
+        options_count: int = 2,
     ) -> Prompt:
         """
         [
@@ -42,7 +41,9 @@ class TestGenerationPromptFactory:
             for item in subtopics
         ]
 
-        total_questions = sum(item["questions_count"] for item in normalized_subtopics)
+        total_questions = sum(
+            item["questions_count"] for item in normalized_subtopics
+        )
 
         subtopics_block = self._render_subtopics_block(normalized_subtopics)
 
@@ -85,9 +86,7 @@ class TestGenerationPromptFactory:
             return "[]"
 
         cleaned = [
-            " ".join(q.strip().split())
-            for q in questions
-            if q and q.strip()
+            " ".join(q.strip().split()) for q in questions if q and q.strip()
         ]
 
         if not cleaned:

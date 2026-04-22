@@ -23,7 +23,9 @@ async def app_error_handler(request: Request, exc: AppError):
             "message": getattr(exc, "message", "Internal server error"),
         }
     }
-    return JSONResponse(status_code=getattr(exc, "status_code", 500), content=content)
+    return JSONResponse(
+        status_code=getattr(exc, "status_code", 500), content=content
+    )
 
 
 async def exception_handler(request: Request, exc: Exception):

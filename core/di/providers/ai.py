@@ -4,9 +4,11 @@ from openai import AsyncOpenAI
 
 from ai.contracts import LLMClient
 from ai.deepseek import DeepSeekClient
-from ai.factories.course_generation_factory import \
-    CourseGenerationPromptFactory
-from ai.factories.test_generation_factory import TestGenerationPromptFactory
+from ai.factories.course_generation_factory import (
+    CourseGenerationPromptFactory,
+)
+from ai.factories.test_generation_factory import \
+    TestGenerationPromptFactory
 from core.config import Settings
 
 
@@ -22,11 +24,15 @@ class AIProvider(Provider):
         )
 
     @provide(scope=Scope.REQUEST)
-    def test_prompt_factory(self, env: Environment) -> TestGenerationPromptFactory:
+    def test_prompt_factory(
+        self, env: Environment
+    ) -> TestGenerationPromptFactory:
         return TestGenerationPromptFactory(env=env)
 
     @provide(scope=Scope.REQUEST)
-    def course_prompt_factory(self, env: Environment) -> CourseGenerationPromptFactory:
+    def course_prompt_factory(
+        self, env: Environment
+    ) -> CourseGenerationPromptFactory:
         return CourseGenerationPromptFactory(env=env)
 
     @provide(scope=Scope.APP)

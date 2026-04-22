@@ -53,6 +53,11 @@ class ConflictError(AppError):
     code = "conflict"
     message = "Conflict"
 
+class ExternalServiceError(AppError):
+    status_code = 502
+    code = "external_service_error"
+    message = "External service error"
+
 
 class TokenError(UnauthorizedError):
     code = "token_error"
@@ -98,15 +103,10 @@ class CourseNotFoundError(NotFoundError):
     code = "course_not_found"
     message = "Course not found"
 
+
 class UserAlreadyExistsError(ConflictError):
     code = "user_already_exists"
     message = "User already exists"
-
-
-class ExternalServiceError(AppError):
-    status_code = 502
-    code = "external_service_error"
-    message = "External service error"
 
 
 
@@ -125,6 +125,20 @@ class InvalidLLMResponseError(ExternalServiceError):
     message = "LLM response is invalid"
 
 
-class InvalidCourseStructureError(Exception):
-    pass
+class InvalidCourseStructureError(ExternalServiceError):
+    code = "invalid_course_structure"
+    message = "Invalid course structure"
 
+
+class TestAlreadySubmittedError(ConflictError):
+    code = "test_already_submitted"
+    message = "Test already submitted"
+
+
+class InvalidTestSubmissionError(BadRequestError):
+    code = "invalid_test_submission",
+    message = "Invalid test submission"
+
+class TestReviewNotAvailableError(ConflictError):
+    code = "test_review_not_available"
+    message = "Test review_not_available"

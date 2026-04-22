@@ -1,11 +1,8 @@
-from typing import Sequence
-
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ai.contracts import GeneratedTestSchema, PreparedQuestionData
-from core.exceptions import TestNotFoundError
+from ai.contracts import PreparedQuestionData
 from models.test import AnswerOption, Question, Test
 
 
@@ -14,8 +11,7 @@ class TestRepository:
         self.session = session
 
     async def get_next_position(self, course_id: int) -> int:
-        stmt = select(
-            func.coalesce(func.max(Test.position), 0) + 1).where(
+        stmt = select(func.coalesce(func.max(Test.position), 0) + 1).where(
             Test.course_id == course_id
         )
         result = await self.session.execute(stmt)
@@ -48,9 +44,13 @@ class TestRepository:
                 AnswerOption(
                     position=option_position,
                     text=option_text,
-                    is_correct=(option_position == question_data.correct_option_index),
+                    is_correct=(
+                        option_position == question_data.correct_option_index
+                    ),
                 )
-                for option_position, option_text in enumerate(question_data.options)
+                for option_position, option_text in enumerate(
+                    question_data.options
+                )
             ]
 
             self.session.add(question)
@@ -63,7 +63,9 @@ class TestRepository:
             select(Test)
             .where(Test.id == test_id)
             .options(
-                selectinload(Test.questions).selectinload(Question.answer_options),
+                selectinload(Test.questions).selectinload(
+                    Question.answer_options
+                ),
             )
         )
         result = await self.session.execute(stmt)

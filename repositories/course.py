@@ -1,9 +1,10 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ai.contracts import GeneratedCourseStructureSchema
 from models.course import Course, Topic, Subtopic
+
 
 class CourseRepository:
     model = Course
@@ -44,7 +45,9 @@ class CourseRepository:
                 name=topic_data.name.strip(),
             )
 
-            for subtopic_position, subtopic_data in enumerate(topic_data.subtopics):
+            for subtopic_position, subtopic_data in enumerate(
+                topic_data.subtopics
+            ):
                 topic.subtopics.append(
                     Subtopic(
                         name=subtopic_data.name.strip(),
@@ -69,5 +72,38 @@ class CourseRepository:
 
     async def get_course_by_id(self, course_id: int) -> Course | None:
         stmt = select(Course).where(Course.id == course_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def find_user_courses_paginated(
+        self,
+        user_id: int,
+        limit: int,
+        offset: int,
+    ) -> list[Course]:
+        stmt = (
+            select(Course)
+            .where(Course.user_id == user_id)
+            .order_by(Course.created_at.desc(), Course.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_user_courses(self, user_id: int) -> int:
+        stmt = select(func.count(Course.id)).where(Course.user_id == user_id)
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def find_by_id_and_user(
+        self,
+        course_id: int,
+        user_id: int,
+    ) -> Course | None:
+        stmt = select(Course).where(
+            Course.id == course_id,
+            Course.user_id == user_id,
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()

@@ -4,20 +4,30 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 
 from ai.contracts import GeneratedTestSchema, LLMClient, \
-   PreparedQuestionData
-from ai.factories.test_generation_factory import TestGenerationPromptFactory
+    PreparedQuestionData
+from ai.factories.test_generation_factory import \
+    TestGenerationPromptFactory
 from core.exceptions import (
     InvalidGeneratedTestError,
     InvalidLLMResponseError,
-    TestNotFoundError, CourseNotFoundError,
+    TestNotFoundError,
+    CourseNotFoundError, TestReviewNotAvailableError,
 )
+from models.progress import TestProgressStatusEnum, \
+    CourseProgressStatusEnum
 from repositories.course import CourseRepository
 from repositories.course_progress import CourseProgressRepository
+from repositories.question_attempt import QuestionAttemptRepository
 from repositories.subtopic import SubtopicRepository
 from repositories.subtopic_progress import SubtopicProgressRepository
 from repositories.test import TestRepository
 from repositories.test_progress import TestProgressRepository
-from schemas.test import TestReadSchema
+from schemas.course import (
+    TestReviewResponseSchema,
+    ReviewTestSchema,
+    ReviewAttemptSchema,
+)
+
 
 
 @dataclass
@@ -28,26 +38,33 @@ class TestService:
     test_progress_repository: TestProgressRepository
     subtopic_repository: SubtopicRepository
     test_repository: TestRepository
+    question_attempt_repository: QuestionAttemptRepository
     llm_client: LLMClient
     prompt_factory: TestGenerationPromptFactory
 
     async def create_test(self, course_id: int, user_id: int):
-        course = await self.course_repository.get_course_by_id(course_id=course_id)
+        course = await self.course_repository.get_course_by_id(
+            course_id=course_id
+        )
         if course is None:
             raise CourseNotFoundError()
 
-        course_progress = await self.course_progress_repository.find_by_course_and_user(
-            course_id=course_id,
-            user_id=user_id,
+        course_progress = (
+            await self.course_progress_repository.find_by_course_and_user(
+                course_id=course_id,
+                user_id=user_id,
+            )
         )
         if course_progress is None:
             await self.course_progress_repository.create(
                 course_id=course_id,
                 user_id=user_id,
-                status="active",
+                status=CourseProgressStatusEnum.ACTIVE,
             )
 
-        subtopics = await self.subtopic_repository.find_by_course_id(course_id=course_id)
+        subtopics = await self.subtopic_repository.find_by_course_id(
+            course_id=course_id
+        )
         if not subtopics:
             raise InvalidGeneratedTestError(message="Course has no subtopics")
 
@@ -60,7 +77,9 @@ class TestService:
             item.subtopic_id: item for item in subtopic_progress_list
         }
 
-        next_position = await self.test_repository.get_next_position(course_id=course_id)
+        next_position = await self.test_repository.get_next_position(
+            course_id=course_id
+        )
 
         prompt_subtopics = [
             {
@@ -70,15 +89,17 @@ class TestService:
                     if subtopic.id in subtopic_progress_by_id
                     else 0
                 ),
-                "questions_count": 2,
+                "questions_count": 1,
             }
             for subtopic in subtopics
         ]
 
-        recent_tests_questions = await self.test_progress_repository.get_last_questions(
-            course_id=course_id,
-            user_id=user_id,
-            limit=3,
+        recent_tests_questions = (
+            await self.test_progress_repository.get_last_questions(
+                course_id=course_id,
+                user_id=user_id,
+                limit=1,
+            )
         )
 
         prompt = self.prompt_factory.build(
@@ -96,11 +117,17 @@ class TestService:
                 temperature=0.0,
             )
         except Exception as exc:
-            raise InvalidLLMResponseError(message="LLM request failed") from exc
+            raise InvalidLLMResponseError(
+                message="LLM request failed"
+            ) from exc
 
         allowed_subtopic_names = {subtopic.name for subtopic in subtopics}
-        subtopic_name_to_id = {subtopic.name: subtopic.id for subtopic in subtopics}
-        questions_by_subtopic = {item["name"]: item["questions_count"] for item in prompt_subtopics}
+        subtopic_name_to_id = {
+            subtopic.name: subtopic.id for subtopic in subtopics
+        }
+        questions_by_subtopic = {
+            item["name"]: item["questions_count"] for item in prompt_subtopics
+        }
 
         def normalize_text(text: str) -> str:
             return re.sub(r"\s+", " ", text).strip().casefold()
@@ -114,7 +141,7 @@ class TestService:
                 raw_answer,
                 context={
                     "questions_count": sum(questions_by_subtopic.values()),
-                    "options_count": 3,
+                    "options_count": 2,
                     "allowed_subtopic_names": allowed_subtopic_names,
                     "questions_by_subtopic": questions_by_subtopic,
                     "recent_questions_normalized": recent_questions_normalized,
@@ -147,6 +174,41 @@ class TestService:
             raise TestNotFoundError()
 
         return full_test
+
+    async def get_review(
+        self,
+        user_id: int,
+        course_id: int,
+        test_id: int,
+    ) -> TestReviewResponseSchema:
+        test = await self.test_repository.get_test_with_details(
+            test_id=test_id
+        )
+        if test is None or test.course_id != course_id:
+            raise TestNotFoundError()
+
+        progress = await self.test_progress_repository.find_by_user_and_test(
+            user_id=user_id,
+            test_id=test_id,
+        )
+        if progress is None or progress.status != TestProgressStatusEnum.FINISHED:
+            raise TestReviewNotAvailableError()
+
+        attempts = (
+            await self.question_attempt_repository.find_by_test_progress_id(
+                test_progress_id=progress.id,
+            )
+        )
+
+        return TestReviewResponseSchema(
+            test=ReviewTestSchema.from_orm_test(test),
+            attempts=[
+                ReviewAttemptSchema.model_validate(
+                    attempt, from_attributes=True
+                )
+                for attempt in attempts
+            ],
+        )
 
     @staticmethod
     def _prepare_generated_test(

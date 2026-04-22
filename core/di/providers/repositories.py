@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.course import CourseRepository
 from repositories.course_progress import CourseProgressRepository
+from repositories.question_attempt import QuestionAttemptRepository
 from repositories.refresh_token import RefreshTokenRepository
 from repositories.subtopic import SubtopicRepository
 from repositories.subtopic_progress import SubtopicProgressRepository
@@ -17,7 +18,9 @@ class RepositoriesProvider(Provider):
         return UserRepository(session=session)
 
     @provide(scope=Scope.REQUEST)
-    def refresh_repository(self, session: AsyncSession) -> RefreshTokenRepository:
+    def refresh_repository(
+        self, session: AsyncSession
+    ) -> RefreshTokenRepository:
         return RefreshTokenRepository(session=session)
 
     @provide(scope=Scope.REQUEST)
@@ -29,7 +32,9 @@ class RepositoriesProvider(Provider):
         return CourseRepository(session=session)
 
     @provide(scope=Scope.REQUEST)
-    def course_progress_repository(self, session: AsyncSession) -> CourseProgressRepository:
+    def course_progress_repository(
+        self, session: AsyncSession
+    ) -> CourseProgressRepository:
         return CourseProgressRepository(session=session)
 
     @provide(scope=Scope.REQUEST)
@@ -37,9 +42,19 @@ class RepositoriesProvider(Provider):
         return SubtopicRepository(session=session)
 
     @provide(scope=Scope.REQUEST)
-    def subtopic_progress_repository(self, session: AsyncSession) -> SubtopicProgressRepository:
+    def subtopic_progress_repository(
+        self, session: AsyncSession
+    ) -> SubtopicProgressRepository:
         return SubtopicProgressRepository(session=session)
 
     @provide(scope=Scope.REQUEST)
-    def test_progress_repository(self, session: AsyncSession) -> TestProgressRepository:
+    def test_progress_repository(
+        self, session: AsyncSession
+    ) -> TestProgressRepository:
         return TestProgressRepository(session=session)
+
+    @provide(scope=Scope.REQUEST)
+    def question_attempt_repository(
+        self, session: AsyncSession
+    ) -> QuestionAttemptRepository:
+        return QuestionAttemptRepository(session=session)

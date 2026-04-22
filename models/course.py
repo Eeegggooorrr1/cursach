@@ -1,8 +1,15 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import ForeignKey, Index, Integer, String, Text, \
-    DateTime, func, UniqueConstraint
+from sqlalchemy import (
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    DateTime,
+    func,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -12,6 +19,7 @@ class DifficultyEnum(str, Enum):
     EASY = "Easy"
     MEDIUM = "Medium"
     HARD = "Hard"
+
 
 class DifficultyModeEnum(str, Enum):
     STATIC = "Static"
@@ -76,7 +84,9 @@ class Subtopic(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
 
     topic: Mapped["Topic"] = relationship(back_populates="subtopics")
-    questions: Mapped[list["Question"]] = relationship(back_populates="subtopic")
+    questions: Mapped[list["Question"]] = relationship(
+        back_populates="subtopic"
+    )
 
     __table_args__ = (
         UniqueConstraint("topic_id", "name", name="uq_subtopics_topic_name"),

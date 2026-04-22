@@ -24,7 +24,9 @@ class DBProvider(Provider):
             await engine.dispose()
 
     @provide(scope=Scope.APP)
-    def sessionmaker(self, engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    def sessionmaker(
+        self, engine: AsyncEngine
+    ) -> async_sessionmaker[AsyncSession]:
         return async_sessionmaker(
             engine,
             class_=AsyncSession,

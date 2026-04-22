@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from importlib import resources
 
 from jinja2 import Environment
 

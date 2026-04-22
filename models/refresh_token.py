@@ -15,6 +15,10 @@ class RefreshToken(Base):
     )
     token: Mapped[str]
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
 
-    user: Mapped["User"] = relationship("User", back_populates="refresh_tokens")
+    user: Mapped["User"] = relationship(
+        "User", back_populates="refresh_tokens"
+    )

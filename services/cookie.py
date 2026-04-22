@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from fastapi import Response
 
 
@@ -21,7 +22,7 @@ class CookieManager:
             key="user_refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=True,
+            secure=False,
             samesite="lax",
         )
 

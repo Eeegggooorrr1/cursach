@@ -11,6 +11,7 @@ from handlers.auth import router as auth_router
 from handlers.tests import router as tests_router
 from handlers.courses import router as courses_router
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
@@ -29,7 +30,7 @@ app.add_exception_handler(Exception, exception_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,6 +40,6 @@ container = build_container()
 setup_dishka(container=container, app=app)
 
 
-#TODO: поставить возможность получать тест ежедневно в ... -> крон каждые n минут \
+# TODO: поставить возможность получать тест ежедневно в ... -> крон каждые n минут \
 # ходит в бд и если видит что через пару минут это время то в бэкграундджобе составляет тест\
 # и шлет на почту уведу

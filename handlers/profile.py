@@ -3,16 +3,17 @@ from typing import Annotated
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi import status, Response
+from fastapi import status
 
 from core.di.providers.auth import RequireRoles
 from models.user import RoleEnum
 from repositories.user import UserRepository
 from schemas.auth import UserFromToken
 from schemas.user import UserUpdateSchema
-from services.auth import AuthService
 
-router = APIRouter(prefix="/profile", tags=["profile"], route_class=DishkaRoute)
+router = APIRouter(
+    prefix="/profile", tags=["profile"], route_class=DishkaRoute
+)
 
 
 @router.patch(

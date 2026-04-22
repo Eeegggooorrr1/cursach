@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,7 +25,9 @@ class Settings(BaseSettings):
     DEEPSEEK_MODEL: str = "deepseek-chat"
     DEEPSEEK_MAX_TOKENS: int = 4096
 
-    model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / ".env")
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).parent.parent / ".env"
+    )
 
     @property
     def database_url(self) -> str:

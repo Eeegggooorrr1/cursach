@@ -1,5 +1,3 @@
-
-
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update as sa_update, ColumnElement

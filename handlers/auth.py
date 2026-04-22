@@ -1,9 +1,7 @@
-from typing import Annotated
-
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, HTTPException, Security, Response
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Response
+from fastapi.security import HTTPBearer
 
 from core.di.providers.auth import RefreshToken
 from schemas.auth import UserLoginSchema, UserRegisterSchema
@@ -25,7 +23,9 @@ async def login(
     cookie_manager: FromDishka[CookieManager],
 ) -> dict[str, str]:
 
-    access_token, refresh_token = await auth_service.login(user.email, user.password)
+    access_token, refresh_token = await auth_service.login(
+        user.email, user.password
+    )
 
     cookie_manager.set_auth_cookies(response, access_token, refresh_token)
 

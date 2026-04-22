@@ -1,19 +1,14 @@
+from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from repositories.base import BaseRepository
 from models.user import User
+from repositories.base import BaseRepository
 from schemas.user import (
     UserCreateSchema,
     UserUpdateSchema,
     UserFilterSchema,
 )
-
-
-from pydantic import BaseModel, EmailStr
-
-from repositories.base import BaseRepository
-from models.user import User
 
 
 class UserRepository(
@@ -28,13 +23,19 @@ class UserRepository(
 
     async def find_user_by_email(self, email: EmailStr) -> User | None:
         stmt = (
-            select(self.model).filter_by(email=email).options(selectinload(User.role))
+            select(self.model)
+            .filter_by(email=email)
+            .options(selectinload(User.role))
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def find_user_by_id(self, user_id: int) -> User | None:
-        stmt = select(self.model).filter_by(id=user_id).options(selectinload(User.role))
+        stmt = (
+            select(self.model)
+            .filter_by(id=user_id)
+            .options(selectinload(User.role))
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 

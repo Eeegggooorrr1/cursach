@@ -1,9 +1,9 @@
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import secrets
 import string
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt, ExpiredSignatureError
 from passlib.context import CryptContext
@@ -39,7 +39,9 @@ class SecurityService:
     def get_password_hash(self, password: str) -> str:
         return self.pwd_context.hash(password)
 
-    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+    def verify_password(
+        self, plain_password: str, hashed_password: str
+    ) -> bool:
         return self.pwd_context.verify(plain_password, hashed_password)
 
     def _get_token_hash(self, token: str) -> str:
@@ -131,7 +133,9 @@ class SecurityService:
             raise TokenNotFoundError()
 
         if token_record.revoked_at is not None:
-            await self.refresh_repository.revoke_all_for_user(token_record.user_id)
+            await self.refresh_repository.revoke_all_for_user(
+                token_record.user_id
+            )
             raise TokenRevokedError()
 
         if token_record.expires_at < datetime.now(timezone.utc):

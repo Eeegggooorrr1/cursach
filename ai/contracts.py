@@ -1,9 +1,15 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Protocol, Counter
 
-from pydantic import BaseModel, model_validator, ConfigDict, \
-    field_validator, Field
+from pydantic import (
+    BaseModel,
+    model_validator,
+    ConfigDict,
+    field_validator,
+    Field,
+)
 from pydantic_core.core_schema import ValidationInfo
 
 
@@ -86,8 +92,13 @@ class GeneratedQuestionSchema(BaseModel):
             raise ValueError("correct_option_index out of range")
 
         expected_options_count = (info.context or {}).get("options_count")
-        if expected_options_count is not None and len(self.options) != expected_options_count:
-            raise ValueError(f"each question must have exactly {expected_options_count} options")
+        if (
+            expected_options_count is not None
+            and len(self.options) != expected_options_count
+        ):
+            raise ValueError(
+                f"each question must have exactly {expected_options_count} options"
+            )
 
         return self
 
@@ -113,30 +124,51 @@ class GeneratedTestSchema(BaseModel):
         ctx = info.context or {}
 
         expected_questions_count = ctx.get("questions_count")
-        if expected_questions_count is not None and len(self.questions) != expected_questions_count:
-            raise ValueError(f"test must contain exactly {expected_questions_count} questions")
+        if (
+            expected_questions_count is not None
+            and len(self.questions) != expected_questions_count
+        ):
+            raise ValueError(
+                f"test must contain exactly {expected_questions_count} questions"
+            )
 
         allowed_subtopics: set[str] | None = ctx.get("allowed_subtopic_names")
         if allowed_subtopics is not None:
-            allowed_subtopics = {_normalize_text(x).casefold() for x in allowed_subtopics}
+            allowed_subtopics = {
+                _normalize_text(x).casefold() for x in allowed_subtopics
+            }
             invalid_subtopics = {
-                q.subtopic for q in self.questions
-                if _normalize_text(q.subtopic).casefold() not in allowed_subtopics
+                q.subtopic
+                for q in self.questions
+                if _normalize_text(q.subtopic).casefold()
+                not in allowed_subtopics
             }
             if invalid_subtopics:
-                raise ValueError(f"questions contain disallowed subtopics: {sorted(invalid_subtopics)}")
+                raise ValueError(
+                    f"questions contain disallowed subtopics: {sorted(invalid_subtopics)}"
+                )
 
-        expected_by_subtopic: dict[str, int] | None = ctx.get("questions_by_subtopic")
+        expected_by_subtopic: dict[str, int] | None = ctx.get(
+            "questions_by_subtopic"
+        )
         if expected_by_subtopic is not None:
-            actual = Counter(_normalize_text(q.subtopic).casefold() for q in self.questions)
-            expected = Counter({
-                _normalize_text(name).casefold(): count
-                for name, count in expected_by_subtopic.items()
-            })
+            actual = Counter(
+                _normalize_text(q.subtopic).casefold() for q in self.questions
+            )
+            expected = Counter(
+                {
+                    _normalize_text(name).casefold(): count
+                    for name, count in expected_by_subtopic.items()
+                }
+            )
             if actual != expected:
-                raise ValueError("questions count by subtopic does not match expected distribution")
+                raise ValueError(
+                    "questions count by subtopic does not match expected distribution"
+                )
 
-        recent_questions: set[str] | None = ctx.get("recent_questions_normalized")
+        recent_questions: set[str] | None = ctx.get(
+            "recent_questions_normalized"
+        )
         if recent_questions is not None:
             for q in self.questions:
                 if _normalize_text(q.text).casefold() in recent_questions:

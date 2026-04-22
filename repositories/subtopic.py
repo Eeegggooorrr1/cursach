@@ -17,3 +17,16 @@ class SubtopicRepository:
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def find_with_topics_by_course_id(
+        self,
+        course_id: int,
+    ) -> list[tuple[Topic, Subtopic]]:
+        stmt = (
+            select(Topic, Subtopic)
+            .join(Subtopic, Subtopic.topic_id == Topic.id)
+            .where(Topic.course_id == course_id)
+            .order_by(Topic.id.asc(), Subtopic.id.asc())
+        )
+        result = await self.session.execute(stmt)
+        return list(result.all())

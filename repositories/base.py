@@ -1,10 +1,10 @@
-
-
 from typing import Any, Generic, TypeVar
-from models.base import Base
+
 from pydantic import BaseModel
 from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.base import Base
 
 TModel = TypeVar("TModel", bound=Base)
 TCreate = TypeVar("TCreate", bound=BaseModel)
@@ -19,7 +19,9 @@ class BaseRepository(Generic[TModel, TCreate, TUpdate, TFilter]):
         self.session = session
 
     @staticmethod
-    def _dump(dto: BaseModel | None, *, exclude_none: bool = False) -> dict[str, Any]:
+    def _dump(
+        dto: BaseModel | None, *, exclude_none: bool = False
+    ) -> dict[str, Any]:
         if dto is None:
             return {}
         return dto.model_dump(exclude_unset=True, exclude_none=exclude_none)
@@ -55,7 +57,9 @@ class BaseRepository(Generic[TModel, TCreate, TUpdate, TFilter]):
         await self.session.flush()
         return instance
 
-    async def update_by_id(self, data_id: int, values: TUpdate) -> TModel | None:
+    async def update_by_id(
+        self, data_id: int, values: TUpdate
+    ) -> TModel | None:
         instance = await self.find_by_id(data_id)
         if instance is None:
             return None
