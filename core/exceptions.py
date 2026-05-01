@@ -136,7 +136,7 @@ class TestAlreadySubmittedError(ConflictError):
 
 
 class InvalidTestSubmissionError(BadRequestError):
-    code = "invalid_test_submission",
+    code = "invalid_test_submission"
     message = "Invalid test submission"
 
 class TestReviewNotAvailableError(ConflictError):

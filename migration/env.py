@@ -10,6 +10,7 @@ from core.config import Settings
 from models.base import Base
 from models.refresh_token import RefreshToken
 from models.user import User
+from models.user import UserCourse
 from models.user import Role
 from models.test import Test, Question, AnswerOption
 from models.course import Course, Topic, Subtopic

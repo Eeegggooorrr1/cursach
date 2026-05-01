@@ -1,5 +1,11 @@
 from dataclasses import dataclass
 
+from core.dto import (
+    QuestionAttemptDraft,
+    SubmissionEvaluationResult,
+    SubtopicProgressUpdate,
+)
+from core.enums import Difficulty
 from core.exceptions import TestNotFoundError, \
     InvalidTestSubmissionError, TestAlreadySubmittedError
 from models.progress import SubtopicProgress, TestProgressStatusEnum
@@ -13,10 +19,6 @@ from schemas.test import (
     SubmitAnswerSchema,
     TestSubmitResponseSchema,
     TestSubmitSchema,
-    QuestionAttemptDraft,
-    SubtopicProgressUpdate,
-    SubmissionEvaluationResult,
-    Difficulty,
 )
 
 
@@ -197,7 +199,11 @@ class TestSubmissionService:
         test = await self.test_repository.get_test_with_details(
             test_id=test_id
         )
-        if test is None or test.course_id != course_id:
+        if (
+            test is None
+            or test.course_id != course_id
+            or test.user_id != user_id
+        ):
             raise TestNotFoundError()
 
         test_progress = await self.test_progress_repository.find_for_update_by_user_and_test(

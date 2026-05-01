@@ -47,6 +47,31 @@ class User(Base):
 
     courses: Mapped[list["Course"]] = relationship(
         "Course",
+        secondary="user_courses",
+        back_populates="users",
+    )
+
+    created_courses: Mapped[list["Course"]] = relationship(
+        "Course",
+        back_populates="creator",
+        foreign_keys="Course.creator_id",
+    )
+
+    tests: Mapped[list["Test"]] = relationship(
+        "Test",
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+
+
+class UserCourse(Base):
+
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    course_id: Mapped[int] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        primary_key=True,
     )

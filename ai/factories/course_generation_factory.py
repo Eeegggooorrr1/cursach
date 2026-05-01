@@ -12,14 +12,14 @@ class CourseGenerationPromptFactory:
     def build(
         self,
         title: str,
-        comment: str | None,
+        prompt: str | None,
         topics: list[str],
         subtopics_count: int,
     ) -> Prompt:
         system = self.env.get_template("course_generation/system.txt").render()
         user = self.env.get_template("course_generation/user.txt").render(
             title=title,
-            comment=comment,
+            prompt=prompt,
             topics=topics,
             subtopics_count=subtopics_count,
         )

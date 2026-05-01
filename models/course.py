@@ -1,7 +1,8 @@
 from datetime import datetime
-from enum import Enum
 
 from sqlalchemy import (
+    BigInteger,
+    Boolean,
     ForeignKey,
     Integer,
     String,
@@ -15,26 +16,24 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base
 
 
-class DifficultyEnum(str, Enum):
-    EASY = "Easy"
-    MEDIUM = "Medium"
-    HARD = "Hard"
-
-
-class DifficultyModeEnum(str, Enum):
-    STATIC = "Static"
-    DYNAMIC = "Dynamic"
-
-
 class Course(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
+    creator_id: Mapped[int] = mapped_column(
+        BigInteger,
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    is_public: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -49,7 +48,17 @@ class Course(Base):
         back_populates="course",
         cascade="all, delete-orphan",
     )
-    user: Mapped["User"] = relationship("User", back_populates="courses")
+    users: Mapped[list["User"]] = relationship(
+        "User",
+        secondary="user_courses",
+        back_populates="courses",
+    )
+
+    creator: Mapped["User"] = relationship(
+        "User",
+        back_populates="created_courses",
+        foreign_keys=[creator_id],
+    )
 
 
 class Topic(Base):

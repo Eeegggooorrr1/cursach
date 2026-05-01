@@ -40,6 +40,7 @@ class TestProgressRepository:
             .where(
                 TestProgress.user_id == user_id,
                 Test.course_id == course_id,
+                Test.user_id == user_id,
             )
             .order_by(TestProgress.started_at.desc())
             .limit(limit)
@@ -97,6 +98,7 @@ class TestProgressRepository:
             .join(TestProgress, TestProgress.test_id == Test.id)
             .where(
                 Test.course_id == course_id,
+                Test.user_id == user_id,
                 TestProgress.user_id == user_id,
             )
             .order_by(TestProgress.started_at.desc(), TestProgress.id.desc())
@@ -117,6 +119,7 @@ class TestProgressRepository:
             .join(Test, Test.id == TestProgress.test_id)
             .where(
                 Test.course_id == course_id,
+                Test.user_id == user_id,
                 TestProgress.user_id == user_id,
             )
         )

@@ -1,18 +1,18 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from schemas.base import StrictSchema
 
 
-class RefreshTokenFilter(BaseModel):
+class RefreshTokenFilter(StrictSchema):
     token: str | None = None
     user_id: int | None = None
 
 
-class RefreshTokenUpdateSchema(BaseModel):
+class RefreshTokenUpdateSchema(StrictSchema):
     revoked_at: datetime
 
 
-class RefreshTokenCreateSchema(BaseModel):
+class RefreshTokenCreateSchema(StrictSchema):
     token: str
     user_id: int
     expires_at: datetime

@@ -47,7 +47,7 @@ class CourseProgressRepository:
                 CourseProgress.user_id == user_id,
             )
             .values(
-                status="completed",
+                status=CourseProgressStatusEnum.FINISHED,
                 completed_at=func.now(),
             )
         )

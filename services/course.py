@@ -2,28 +2,35 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from ai.contracts import GeneratedCourseStructureSchema, LLMClient
+from ai.schemas import GeneratedCourseStructureSchema, normalize_text
+from ai.contracts import LLMClient
 from ai.factories.course_generation_factory import (
     CourseGenerationPromptFactory,
 )
+from core.dto import SubtopicProgressUpdate
+from core.enums import Difficulty
 from core.exceptions import (
+    CourseNotFoundError,
     InvalidCourseStructureError,
     InvalidLLMResponseError,
-    CourseNotFoundError,
 )
+from models.progress import CourseProgressStatusEnum
 from repositories.course import CourseRepository
+from repositories.course_progress import CourseProgressRepository
 from repositories.subtopic import SubtopicRepository
 from repositories.subtopic_progress import SubtopicProgressRepository
 from repositories.test_progress import TestProgressRepository
 from schemas.course import (
-    PaginatedCourseListSchema,
-    CourseListItemSchema,
-    PaginationSchema,
-    PaginatedCourseDetailSchema,
-    CourseHistoryTestItemSchema,
     CourseDetailSchema,
-    CourseProgressResponseSchema,
+    CourseEnrollmentResponseSchema,
+    CourseHistoryTestItemSchema,
+    CourseListItemSchema,
     CourseProgressItemSchema,
+    CourseProgressResponseSchema,
+    PaginatedCourseDetailSchema,
+    PaginatedCourseListSchema,
+    PaginationSchema,
+    PublicCourseDetailSchema,
 )
 
 
@@ -43,6 +50,7 @@ class CourseGenerationPolicy:
 @dataclass
 class CourseService:
     course_repository: CourseRepository
+    course_progress_repository: CourseProgressRepository
     llm_client: LLMClient
     prompt_factory: CourseGenerationPromptFactory
     course_policy: CourseGenerationPolicy
@@ -55,28 +63,32 @@ class CourseService:
         user_id: int,
         title: str,
         comment: str | None,
+        prompt: str | None,
         topics: list[str],
+        initial_difficulty: Difficulty,
+        is_public: bool,
     ):
-
         course = await self.course_repository.create_course(
-            user_id=user_id,
+            creator_id=user_id,
             title=title,
             comment=comment,
+            prompt=prompt,
+            is_public=is_public,
         )
 
         subtopics_count = self.course_policy.get_subtopics_count(len(topics))
 
-        prompt = self.prompt_factory.build(
+        generation_prompt = self.prompt_factory.build(
             title=title,
-            comment=comment,
+            prompt=prompt,
             topics=topics,
             subtopics_count=subtopics_count,
         )
 
         try:
             raw_answer = await self.llm_client.complete(
-                system=prompt.system,
-                user=prompt.user,
+                system=generation_prompt.system,
+                user=generation_prompt.user,
                 temperature=0.0,
             )
         except Exception as exc:
@@ -98,6 +110,12 @@ class CourseService:
         await self.course_repository.save_generated_course(
             course_id=course.id,
             generated=generated,
+        )
+
+        await self._ensure_learning_state(
+            user_id=user_id,
+            course_id=course.id,
+            initial_difficulty=initial_difficulty,
         )
 
         full_course = await self.course_repository.get_course_with_details(
@@ -123,14 +141,94 @@ class CourseService:
             user_id=user_id
         )
 
-        return PaginatedCourseListSchema(
-            items=[
-                CourseListItemSchema.model_validate(
-                    course, from_attributes=True
-                )
-                for course in courses
-            ],
-            meta=PaginationSchema(total=total, limit=limit, offset=offset),
+        return self._build_course_list_response(
+            courses=courses,
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
+
+    async def get_public_courses(
+        self,
+        limit: int,
+        offset: int,
+    ) -> PaginatedCourseListSchema:
+        courses = await self.course_repository.find_public_courses_paginated(
+            limit=limit,
+            offset=offset,
+        )
+        total = await self.course_repository.count_public_courses()
+        return self._build_course_list_response(
+            courses=courses,
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
+
+    async def get_public_course_detail(
+        self,
+        course_id: int,
+    ) -> PublicCourseDetailSchema:
+        course = await self.course_repository.find_public_with_details(
+            course_id=course_id,
+        )
+        if course is None:
+            raise CourseNotFoundError()
+
+        return PublicCourseDetailSchema.model_validate(
+            course,
+            from_attributes=True,
+        )
+
+    async def enroll_public_course(
+        self,
+        user_id: int,
+        course_id: int,
+        initial_difficulty: Difficulty,
+    ) -> CourseEnrollmentResponseSchema:
+        course = await self.course_repository.get_course_by_id(
+            course_id=course_id
+        )
+        if course is None or not course.is_public:
+            raise CourseNotFoundError()
+
+        enrolled = await self.course_repository.add_user_course(
+            user_id=user_id,
+            course_id=course_id,
+        )
+
+        await self._ensure_learning_state(
+            user_id=user_id,
+            course_id=course_id,
+            initial_difficulty=initial_difficulty,
+        )
+
+        return CourseEnrollmentResponseSchema(
+            course_id=course_id,
+            user_id=user_id,
+            enrolled=enrolled,
+        )
+
+    async def set_course_visibility(
+        self,
+        user_id: int,
+        course_id: int,
+        is_public: bool,
+    ) -> CourseDetailSchema:
+        course = await self.course_repository.find_owned_by_id(
+            course_id=course_id,
+            creator_id=user_id,
+        )
+        if course is None:
+            raise CourseNotFoundError()
+
+        course = await self.course_repository.set_visibility(
+            course=course,
+            is_public=is_public,
+        )
+        return CourseDetailSchema.model_validate(
+            course,
+            from_attributes=True,
         )
 
     async def get_course_detail(
@@ -177,7 +275,8 @@ class CourseService:
 
         return PaginatedCourseDetailSchema(
             course=CourseDetailSchema.model_validate(
-                course, from_attributes=True
+                course,
+                from_attributes=True,
             ),
             tests=tests,
             meta=PaginationSchema(total=total, limit=limit, offset=offset),
@@ -229,6 +328,68 @@ class CourseService:
 
         return CourseProgressResponseSchema(items=items)
 
+    async def _ensure_learning_state(
+        self,
+        user_id: int,
+        course_id: int,
+        initial_difficulty: Difficulty,
+    ) -> None:
+        course_progress = (
+            await self.course_progress_repository.find_by_course_and_user(
+                course_id=course_id,
+                user_id=user_id,
+            )
+        )
+        if course_progress is None:
+            await self.course_progress_repository.create(
+                course_id=course_id,
+                user_id=user_id,
+                status=CourseProgressStatusEnum.ACTIVE,
+            )
+
+        subtopics = await self.subtopic_repository.find_by_course_id(
+            course_id=course_id,
+        )
+        subtopic_ids = [subtopic.id for subtopic in subtopics]
+        existing_progress = await self.subtopic_progress_repository.find_by_user_and_subtopic_ids(
+            user_id=user_id,
+            subtopic_ids=subtopic_ids,
+        )
+        existing_ids = {item.subtopic_id for item in existing_progress}
+
+        missing_updates = [
+            SubtopicProgressUpdate(
+                subtopic_id=subtopic_id,
+                mastery_score=0.0,
+                current_difficulty=int(initial_difficulty),
+                current_streak=0,
+            )
+            for subtopic_id in subtopic_ids
+            if subtopic_id not in existing_ids
+        ]
+        await self.subtopic_progress_repository.upsert_many(
+            user_id=user_id,
+            updates=missing_updates,
+        )
+
+    @staticmethod
+    def _build_course_list_response(
+        courses,
+        total: int,
+        limit: int,
+        offset: int,
+    ) -> PaginatedCourseListSchema:
+        return PaginatedCourseListSchema(
+            items=[
+                CourseListItemSchema.model_validate(
+                    course,
+                    from_attributes=True,
+                )
+                for course in courses
+            ],
+            meta=PaginationSchema(total=total, limit=limit, offset=offset),
+        )
+
     @staticmethod
     def _validate_generated_course(
         expected_topics: list[str],
@@ -236,9 +397,14 @@ class CourseService:
         generated: GeneratedCourseStructureSchema,
     ) -> None:
         expected = [
-            topic.strip() for topic in expected_topics if topic.strip()
+            normalize_text(topic).casefold()
+            for topic in expected_topics
+            if topic.strip()
         ]
-        actual = [topic.name for topic in generated.topics]
+        actual = [
+            normalize_text(topic.name).casefold()
+            for topic in generated.topics
+        ]
 
         if len(actual) != len(expected):
             raise InvalidCourseStructureError(

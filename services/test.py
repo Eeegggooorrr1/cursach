@@ -3,18 +3,18 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from ai.contracts import GeneratedTestSchema, LLMClient, \
-    PreparedQuestionData
-from ai.factories.test_generation_factory import \
-    TestGenerationPromptFactory
+from ai.schemas import GeneratedTestSchema
+from ai.contracts import LLMClient
+from ai.factories.test_generation_factory import TestGenerationPromptFactory
+from core.dto import PreparedQuestionData
 from core.exceptions import (
+    CourseNotFoundError,
     InvalidGeneratedTestError,
     InvalidLLMResponseError,
     TestNotFoundError,
-    CourseNotFoundError, TestReviewNotAvailableError,
+    TestReviewNotAvailableError,
 )
-from models.progress import TestProgressStatusEnum, \
-    CourseProgressStatusEnum
+from models.progress import CourseProgressStatusEnum, TestProgressStatusEnum
 from repositories.course import CourseRepository
 from repositories.course_progress import CourseProgressRepository
 from repositories.question_attempt import QuestionAttemptRepository
@@ -23,11 +23,10 @@ from repositories.subtopic_progress import SubtopicProgressRepository
 from repositories.test import TestRepository
 from repositories.test_progress import TestProgressRepository
 from schemas.course import (
-    TestReviewResponseSchema,
-    ReviewTestSchema,
     ReviewAttemptSchema,
+    ReviewTestSchema,
+    TestReviewResponseSchema,
 )
-
 
 
 @dataclass
@@ -43,8 +42,9 @@ class TestService:
     prompt_factory: TestGenerationPromptFactory
 
     async def create_test(self, course_id: int, user_id: int):
-        course = await self.course_repository.get_course_by_id(
-            course_id=course_id
+        course = await self.course_repository.find_by_id_and_user(
+            course_id=course_id,
+            user_id=user_id,
         )
         if course is None:
             raise CourseNotFoundError()
@@ -78,7 +78,8 @@ class TestService:
         }
 
         next_position = await self.test_repository.get_next_position(
-            course_id=course_id
+            course_id=course_id,
+            user_id=user_id,
         )
 
         prompt_subtopics = [
@@ -104,7 +105,7 @@ class TestService:
 
         prompt = self.prompt_factory.build(
             course_title=course.title,
-            course_comment=course.comment,
+            course_prompt=course.prompt,
             test_no=next_position,
             subtopics=prompt_subtopics,
             recent_tests_questions=recent_tests_questions,
@@ -123,17 +124,15 @@ class TestService:
 
         allowed_subtopic_names = {subtopic.name for subtopic in subtopics}
         subtopic_name_to_id = {
-            subtopic.name: subtopic.id for subtopic in subtopics
+            self._normalize_text(subtopic.name): subtopic.id
+            for subtopic in subtopics
         }
         questions_by_subtopic = {
-            item["name"]: item["questions_count"] for item in prompt_subtopics
+            item["name"]: item["questions_count"]
+            for item in prompt_subtopics
         }
-
-        def normalize_text(text: str) -> str:
-            return re.sub(r"\s+", " ", text).strip().casefold()
-
         recent_questions_normalized = {
-            normalize_text(q) for q in recent_tests_questions
+            self._normalize_text(q) for q in recent_tests_questions
         }
 
         try:
@@ -159,6 +158,7 @@ class TestService:
 
         test = await self.test_repository.create_test(
             course_id=course_id,
+            user_id=user_id,
             position=next_position,
             title=f"Тест {next_position}",
             questions=prepared_questions,
@@ -184,14 +184,21 @@ class TestService:
         test = await self.test_repository.get_test_with_details(
             test_id=test_id
         )
-        if test is None or test.course_id != course_id:
+        if (
+            test is None
+            or test.course_id != course_id
+            or test.user_id != user_id
+        ):
             raise TestNotFoundError()
 
         progress = await self.test_progress_repository.find_by_user_and_test(
             user_id=user_id,
             test_id=test_id,
         )
-        if progress is None or progress.status != TestProgressStatusEnum.FINISHED:
+        if (
+            progress is None
+            or progress.status != TestProgressStatusEnum.FINISHED
+        ):
             raise TestReviewNotAvailableError()
 
         attempts = (
@@ -204,7 +211,8 @@ class TestService:
             test=ReviewTestSchema.from_orm_test(test),
             attempts=[
                 ReviewAttemptSchema.model_validate(
-                    attempt, from_attributes=True
+                    attempt,
+                    from_attributes=True,
                 )
                 for attempt in attempts
             ],
@@ -218,9 +226,10 @@ class TestService:
         prepared_questions: list[PreparedQuestionData] = []
 
         for question in generated.questions:
+            subtopic_key = TestService._normalize_text(question.subtopic)
             prepared_questions.append(
                 PreparedQuestionData(
-                    subtopic_id=subtopic_name_to_id[question.subtopic],
+                    subtopic_id=subtopic_name_to_id[subtopic_key],
                     prompt=question.text,
                     options=question.options,
                     correct_option_index=question.correct_option_index,
@@ -228,3 +237,7 @@ class TestService:
             )
 
         return prepared_questions
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        return re.sub(r"\s+", " ", text).strip().casefold()

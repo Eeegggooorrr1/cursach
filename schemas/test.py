@@ -1,24 +1,20 @@
-from dataclasses import dataclass
-from enum import IntEnum
+from pydantic import Field, model_validator
 
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from schemas.base import OrmSchema, StrictSchema
 
 
-class TestCreateSchema(BaseModel):
+class TestCreateSchema(StrictSchema):
     topic: str
     questions_count: int = Field(ge=1, le=20)
     options_count: int = Field(ge=2, le=8)
 
 
-class TestOptionReadSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="forbid")
+class TestOptionReadSchema(OrmSchema):
     id: int
     text: str
 
 
-class TestQuestionReadSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="forbid")
-
+class TestQuestionReadSchema(OrmSchema):
     id: int
     subtopic_id: int
     prompt: str
@@ -27,26 +23,21 @@ class TestQuestionReadSchema(BaseModel):
     )
 
 
-class TestReadSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="forbid")
-
+class TestReadSchema(OrmSchema):
     id: int
     course_id: int
+    user_id: int
     position: int
     title: str
     questions: list[TestQuestionReadSchema]
 
 
-class SubmitAnswerSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class SubmitAnswerSchema(StrictSchema):
     question_id: int
     selected_option_id: int
 
 
-class TestSubmitSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class TestSubmitSchema(StrictSchema):
     answers: list[SubmitAnswerSchema] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -57,39 +48,8 @@ class TestSubmitSchema(BaseModel):
         return self
 
 
-class TestSubmitResponseSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class TestSubmitResponseSchema(StrictSchema):
     test_progress_id: int
     test_id: int
     status: str
     correct_percentage: float
-
-
-@dataclass(frozen=True)
-class QuestionAttemptDraft:
-    question_id: int
-    selected_option_id: int
-    is_correct: bool
-
-
-@dataclass(frozen=True)
-class SubtopicProgressUpdate:
-    subtopic_id: int
-    mastery_score: float
-    current_difficulty: int
-    current_streak: int
-
-
-@dataclass(frozen=True)
-class SubmissionEvaluationResult:
-    attempts: list[QuestionAttemptDraft]
-    subtopic_updates: list[SubtopicProgressUpdate]
-    correct_count: int
-    incorrect_count: int
-
-
-class Difficulty(IntEnum):
-    EASY = 0
-    MEDIUM = 1
-    HARD = 2

@@ -94,6 +94,7 @@ class ServicesProvider(Provider):
     def course_service(
         self,
         course_repository: CourseRepository,
+        course_progress_repository: CourseProgressRepository,
         llm_client: LLMClient,
         course_prompt_factory: CourseGenerationPromptFactory,
         course_policy: CourseGenerationPolicy,
@@ -103,6 +104,7 @@ class ServicesProvider(Provider):
     ) -> CourseService:
         return CourseService(
             course_repository=course_repository,
+            course_progress_repository=course_progress_repository,
             llm_client=llm_client,
             prompt_factory=course_prompt_factory,
             course_policy=course_policy,

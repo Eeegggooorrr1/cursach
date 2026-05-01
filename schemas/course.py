@@ -2,91 +2,130 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import Field, model_validator
 
+from core.enums import Difficulty
 from models import Question, Test
+from schemas.base import OrmSchema, StrictSchema
 
 
-class CourseCreateSchema(BaseModel):
+def _clean_optional_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+class CourseCreateSchema(StrictSchema):
     title: str
     comment: str | None = None
+    prompt: str | None = None
     topics: list[str] = Field(min_length=1)
-    # difficulty: DifficultyEnum = DifficultyEnum.EASY
-    # difficulty_mode: DifficultyModeEnum = DifficultyModeEnum.STATIC
+    initial_difficulty: Difficulty = Difficulty.EASY
+    is_public: bool = False
 
     @model_validator(mode="after")
-    def validate_topics(self) -> CourseCreateSchema:
+    def validate_course(self) -> CourseCreateSchema:
         self.title = self.title.strip()
         if not self.title:
             raise ValueError("title cannot be empty")
 
+        self.comment = _clean_optional_text(self.comment)
+        self.prompt = _clean_optional_text(self.prompt)
+
         cleaned_topics = [
-            topic.strip() for topic in self.topics if topic.strip()
+            " ".join(topic.strip().split())
+            for topic in self.topics
+            if topic.strip()
         ]
         if not cleaned_topics:
             raise ValueError("topics list cannot be empty")
 
-        if len(set(cleaned_topics)) != len(cleaned_topics):
+        normalized_topics = [topic.casefold() for topic in cleaned_topics]
+        if len(set(normalized_topics)) != len(normalized_topics):
             raise ValueError("topics must be unique")
 
         self.topics = cleaned_topics
         return self
 
 
-class SubtopicReadSchema(BaseModel):
+class CourseEnrollSchema(StrictSchema):
+    initial_difficulty: Difficulty = Difficulty.EASY
+
+
+class CourseVisibilityUpdateSchema(StrictSchema):
+    is_public: bool
+
+
+class CourseEnrollmentResponseSchema(StrictSchema):
+    course_id: int
+    user_id: int
+    enrolled: bool
+
+
+class SubtopicReadSchema(OrmSchema):
     id: int
     name: str
 
 
-class TopicReadSchema(BaseModel):
+class TopicReadSchema(OrmSchema):
     id: int
     name: str
     subtopics: list[SubtopicReadSchema]
 
 
-class CourseReadSchema(BaseModel):
+class CourseReadSchema(OrmSchema):
     id: int
+    creator_id: int
     title: str
     comment: str | None
+    prompt: str | None
+    is_public: bool
+    created_at: datetime
     topics: list[TopicReadSchema]
 
 
-class PaginationSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class PaginationSchema(StrictSchema):
     total: int
     limit: int
     offset: int
 
 
-class CourseListItemSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="forbid")
-
+class CourseListItemSchema(OrmSchema):
     id: int
+    creator_id: int
     title: str
     comment: str | None
+    is_public: bool
     created_at: datetime
 
 
-class PaginatedCourseListSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class PaginatedCourseListSchema(StrictSchema):
     items: list[CourseListItemSchema]
     meta: PaginationSchema
 
 
-class CourseDetailSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="forbid")
-
+class PublicCourseDetailSchema(OrmSchema):
     id: int
+    creator_id: int
     title: str
     comment: str | None
+    is_public: bool
+    created_at: datetime
+    topics: list[TopicReadSchema]
+
+
+class CourseDetailSchema(OrmSchema):
+    id: int
+    creator_id: int
+    title: str
+    comment: str | None
+    prompt: str | None
+    is_public: bool
     created_at: datetime
 
 
-class CourseHistoryTestItemSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class CourseHistoryTestItemSchema(StrictSchema):
     id: int
     position: int
     title: str
@@ -97,17 +136,13 @@ class CourseHistoryTestItemSchema(BaseModel):
     finished_at: datetime | None
 
 
-class PaginatedCourseDetailSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class PaginatedCourseDetailSchema(StrictSchema):
     course: CourseDetailSchema
     tests: list[CourseHistoryTestItemSchema]
     meta: PaginationSchema
 
 
-class CourseProgressItemSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class CourseProgressItemSchema(StrictSchema):
     topic_id: int
     topic_name: str
     subtopic_id: int
@@ -117,23 +152,17 @@ class CourseProgressItemSchema(BaseModel):
     current_streak: int
 
 
-class CourseProgressResponseSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class CourseProgressResponseSchema(StrictSchema):
     items: list[CourseProgressItemSchema]
 
 
-class ReviewOptionSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="forbid")
-
+class ReviewOptionSchema(OrmSchema):
     id: int
     text: str
     is_correct: bool
 
 
-class ReviewQuestionSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class ReviewQuestionSchema(OrmSchema):
     id: int
     subtopic_id: int
     prompt: str
@@ -152,9 +181,7 @@ class ReviewQuestionSchema(BaseModel):
         )
 
 
-class ReviewTestSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class ReviewTestSchema(StrictSchema):
     id: int
     course_id: int
     position: int
@@ -175,16 +202,12 @@ class ReviewTestSchema(BaseModel):
         )
 
 
-class ReviewAttemptSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="forbid")
-
+class ReviewAttemptSchema(OrmSchema):
     question_id: int
     selected_option_id: int | None
     is_correct: bool
 
 
-class TestReviewResponseSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class TestReviewResponseSchema(StrictSchema):
     test: ReviewTestSchema
     attempts: list[ReviewAttemptSchema]

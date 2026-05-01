@@ -14,6 +14,11 @@ from schemas.course import (
     PaginatedCourseDetailSchema,
     CourseProgressResponseSchema,
     TestReviewResponseSchema,
+    CourseEnrollSchema,
+    CourseEnrollmentResponseSchema,
+    CourseVisibilityUpdateSchema,
+    CourseDetailSchema,
+    PublicCourseDetailSchema,
 )
 from schemas.test import (
     TestReadSchema,
@@ -41,7 +46,10 @@ async def create_course(
         user_id=user.id,
         title=course.title,
         comment=course.comment,
+        prompt=course.prompt,
         topics=course.topics,
+        initial_difficulty=course.initial_difficulty,
+        is_public=course.is_public,
     )
 
     return created_course
@@ -91,6 +99,58 @@ async def get_my_courses(
         user_id=user.id,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.get("/public")
+async def get_public_courses(
+    course_service: FromDishka[CourseService],
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> PaginatedCourseListSchema:
+    return await course_service.get_public_courses(
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/public/{course_id}")
+async def get_public_course_detail(
+    course_id: int,
+    course_service: FromDishka[CourseService],
+) -> PublicCourseDetailSchema:
+    return await course_service.get_public_course_detail(course_id=course_id)
+
+
+@router.post("/{course_id}/enroll")
+async def enroll_public_course(
+    course_id: int,
+    payload: CourseEnrollSchema,
+    user: Annotated[
+        UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
+    ],
+    course_service: FromDishka[CourseService],
+) -> CourseEnrollmentResponseSchema:
+    return await course_service.enroll_public_course(
+        user_id=user.id,
+        course_id=course_id,
+        initial_difficulty=payload.initial_difficulty,
+    )
+
+
+@router.patch("/{course_id}/visibility")
+async def update_course_visibility(
+    course_id: int,
+    payload: CourseVisibilityUpdateSchema,
+    user: Annotated[
+        UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
+    ],
+    course_service: FromDishka[CourseService],
+) -> CourseDetailSchema:
+    return await course_service.set_course_visibility(
+        user_id=user.id,
+        course_id=course_id,
+        is_public=payload.is_public,
     )
 
 

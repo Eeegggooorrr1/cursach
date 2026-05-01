@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     ForeignKey,
     Integer,
@@ -19,10 +20,17 @@ class Test(Base):
         nullable=False,
         index=True,
     )
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     title: Mapped[str] = mapped_column(String, nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
 
     course: Mapped["Course"] = relationship(back_populates="tests")
+    user: Mapped["User"] = relationship("User", back_populates="tests")
     questions: Mapped[list["Question"]] = relationship(
         back_populates="test",
         cascade="all, delete-orphan",
@@ -30,7 +38,10 @@ class Test(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "course_id", "position", name="uq_tests_course_position"
+            "course_id",
+            "user_id",
+            "position",
+            name="uq_tests_course_user_position",
         ),
     )
 

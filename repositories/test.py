@@ -2,7 +2,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ai.contracts import PreparedQuestionData
+from core.dto import PreparedQuestionData
 from models.test import AnswerOption, Question, Test
 
 
@@ -10,9 +10,10 @@ class TestRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_next_position(self, course_id: int) -> int:
+    async def get_next_position(self, course_id: int, user_id: int) -> int:
         stmt = select(func.coalesce(func.max(Test.position), 0) + 1).where(
-            Test.course_id == course_id
+            Test.course_id == course_id,
+            Test.user_id == user_id,
         )
         result = await self.session.execute(stmt)
         return result.scalar_one()
@@ -20,12 +21,14 @@ class TestRepository:
     async def create_test(
         self,
         course_id: int,
+        user_id: int,
         position: int,
         title: str,
         questions: list[PreparedQuestionData],
     ) -> Test:
         test = Test(
             course_id=course_id,
+            user_id=user_id,
             title=title,
             position=position,
         )

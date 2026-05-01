@@ -1,22 +1,22 @@
 from pydantic import (
-    BaseModel,
     EmailStr,
 )
 
 from models.user import RoleEnum
+from schemas.base import StrictSchema
 
 
-class UserCreateSchema(BaseModel):
+class UserCreateSchema(StrictSchema):
     email: EmailStr
     username: str
     password: str
     role: RoleEnum | None = None
 
 
-class UserUpdateSchema(BaseModel):
+class UserUpdateSchema(StrictSchema):
     username: str | None = None
 
 
-class UserFilterSchema(BaseModel):
+class UserFilterSchema(StrictSchema):
     email: EmailStr | None = None
     username: str | None = None

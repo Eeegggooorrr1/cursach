@@ -3,8 +3,8 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.dto import QuestionAttemptDraft
 from models.progress import QuestionAttempt
-from schemas.test import QuestionAttemptDraft
 
 
 class QuestionAttemptRepository:

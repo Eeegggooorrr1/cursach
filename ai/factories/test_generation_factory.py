@@ -13,7 +13,7 @@ class TestGenerationPromptFactory:
     def build(
         self,
         course_title: str,
-        course_comment: str | None,
+        course_prompt: str | None,
         test_no: int,
         subtopics: list[dict[str, Any]],
         recent_tests_questions: list[str],
@@ -52,13 +52,18 @@ class TestGenerationPromptFactory:
         )
 
         system = self.env.get_template("test_generation/system.txt").render(
+            topic=course_title.strip(),
+            course_prompt=(course_prompt or "").strip(),
+            test_no=test_no,
             questions_count=total_questions,
             options_count=options_count,
+            subtopics=subtopics_block,
+            recent_tests_questions=recent_questions_block,
         )
 
         user = self.env.get_template("test_generation/user.txt").render(
             topic=course_title.strip(),
-            course_comment=(course_comment or "").strip(),
+            course_prompt=(course_prompt or "").strip(),
             test_no=test_no,
             questions_count=total_questions,
             options_count=options_count,

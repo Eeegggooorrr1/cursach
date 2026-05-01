@@ -1,20 +1,21 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import EmailStr
 
 from models.user import RoleEnum
+from schemas.base import StrictSchema
 
 
-class UserFromToken(BaseModel):
+class UserFromToken(StrictSchema):
     id: int
     username: str
     role: RoleEnum
 
 
-class UserLoginSchema(BaseModel):
+class UserLoginSchema(StrictSchema):
     email: EmailStr
     password: str
 
 
-class UserRegisterSchema(BaseModel):
+class UserRegisterSchema(StrictSchema):
     email: EmailStr
     password: str
     username: str

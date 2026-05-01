@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.dto import SubtopicProgressUpdate
 from models.progress import SubtopicProgress
-from schemas.test import SubtopicProgressUpdate
 
 
 class SubtopicProgressRepository:
