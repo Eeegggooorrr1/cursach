@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 from core.dto import (
@@ -20,6 +21,9 @@ from schemas.test import (
     TestSubmitResponseSchema,
     TestSubmitSchema,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class TestSubmissionPolicy:
@@ -129,6 +133,7 @@ class TestSubmissionPolicy:
                 current=old_difficulty,
                 mastery_score=new_score,
                 streak=new_streak,
+                had_errors=bad > 0,
             )
 
             subtopic_updates.append(
@@ -152,6 +157,7 @@ class TestSubmissionPolicy:
         current: Difficulty,
         mastery_score: float,
         streak: int,
+        had_errors: bool,
     ) -> Difficulty:
         if current == Difficulty.EASY:
             if (
@@ -163,7 +169,10 @@ class TestSubmissionPolicy:
             return Difficulty.EASY
 
         if current == Difficulty.MEDIUM:
-            if mastery_score < self.DEMOTE_THRESHOLD[Difficulty.MEDIUM]:
+            if (
+                had_errors
+                and mastery_score < self.DEMOTE_THRESHOLD[Difficulty.MEDIUM]
+            ):
                 return Difficulty.EASY
             if (
                 streak > 0
@@ -173,7 +182,10 @@ class TestSubmissionPolicy:
                 return Difficulty.HARD
             return Difficulty.MEDIUM
 
-        if mastery_score < self.DEMOTE_THRESHOLD[Difficulty.HARD]:
+        if (
+            had_errors
+            and mastery_score < self.DEMOTE_THRESHOLD[Difficulty.HARD]
+        ):
             return Difficulty.MEDIUM
         return Difficulty.HARD
 
@@ -254,6 +266,16 @@ class TestSubmissionService:
         await self.subtopic_progress_repository.upsert_many(
             user_id=user_id,
             updates=evaluation.subtopic_updates,
+        )
+
+        logger.info(
+            "Test submitted: user_id=%s course_id=%s test_id=%s correct=%s incorrect=%s correct_percentage=%s",
+            user_id,
+            course_id,
+            test.id,
+            evaluation.correct_count,
+            evaluation.incorrect_count,
+            correct_percentage,
         )
 
         return TestSubmitResponseSchema(

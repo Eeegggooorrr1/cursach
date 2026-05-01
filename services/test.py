@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -30,6 +31,9 @@ from schemas.course import (
     ReviewTestSchema,
     TestReviewResponseSchema,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -159,6 +163,17 @@ class TestService:
             progress_by_subtopic_id=subtopic_progress_by_id,
             test_no=next_position,
         )
+        planned_questions_count = sum(
+            item["questions_count"] for item in prompt_subtopics
+        )
+        logger.info(
+            "Generating test: user_id=%s course_id=%s test_position=%s subtopics=%s questions=%s",
+            user_id,
+            course_id,
+            next_position,
+            len(prompt_subtopics),
+            planned_questions_count,
+        )
 
         recent_tests_questions = (
             await self.test_progress_repository.get_last_questions(
@@ -183,6 +198,12 @@ class TestService:
                 temperature=0.0,
             )
         except Exception as exc:
+            logger.warning(
+                "Test generation LLM request failed: user_id=%s course_id=%s test_position=%s",
+                user_id,
+                course_id,
+                next_position,
+            )
             raise InvalidLLMResponseError(
                 message="LLM request failed"
             ) from exc
@@ -213,6 +234,12 @@ class TestService:
                 },
             )
         except ValidationError as exc:
+            logger.warning(
+                "Test generation returned invalid schema: user_id=%s course_id=%s test_position=%s",
+                user_id,
+                course_id,
+                next_position,
+            )
             raise InvalidLLMResponseError(
                 message="LLM returned invalid JSON/schema"
             ) from exc
@@ -239,6 +266,17 @@ class TestService:
         if full_test is None:
             raise TestNotFoundError()
 
+        multiple_choice_count = sum(
+            1 for question in full_test.questions if question.is_multiple_choice
+        )
+        logger.info(
+            "Test created: user_id=%s course_id=%s test_id=%s questions=%s multiple_choice=%s",
+            user_id,
+            course_id,
+            full_test.id,
+            len(full_test.questions),
+            multiple_choice_count,
+        )
         return full_test
 
     async def get_review(

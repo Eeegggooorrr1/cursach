@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 from pydantic import ValidationError
@@ -34,6 +35,9 @@ from schemas.course import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 @dataclass(frozen=True)
 class CourseGenerationPolicy:
     @staticmethod
@@ -68,6 +72,15 @@ class CourseService:
         initial_difficulty: Difficulty,
         is_public: bool,
     ):
+        logger.info(
+            "Creating course: user_id=%s title=%s topics_count=%s initial_difficulty=%s is_public=%s",
+            user_id,
+            title,
+            len(topics),
+            int(initial_difficulty),
+            is_public,
+        )
+
         course = await self.course_repository.create_course(
             creator_id=user_id,
             title=title,
@@ -92,6 +105,11 @@ class CourseService:
                 temperature=0.0,
             )
         except Exception as exc:
+            logger.warning(
+                "Course generation LLM request failed: user_id=%s course_id=%s",
+                user_id,
+                course.id,
+            )
             raise InvalidLLMResponseError() from exc
 
         try:
@@ -99,6 +117,11 @@ class CourseService:
                 raw_answer
             )
         except ValidationError as exc:
+            logger.warning(
+                "Course generation returned invalid schema: user_id=%s course_id=%s",
+                user_id,
+                course.id,
+            )
             raise InvalidLLMResponseError() from exc
 
         self._validate_generated_course(
@@ -124,6 +147,12 @@ class CourseService:
         if not full_course:
             raise InvalidCourseStructureError("Course not found after save")
 
+        logger.info(
+            "Course created: user_id=%s course_id=%s topics=%s",
+            user_id,
+            full_course.id,
+            len(full_course.topics),
+        )
         return full_course
 
     async def get_user_courses(
@@ -203,6 +232,14 @@ class CourseService:
             initial_difficulty=initial_difficulty,
         )
 
+        logger.info(
+            "Public course enrollment: user_id=%s course_id=%s enrolled=%s initial_difficulty=%s",
+            user_id,
+            course_id,
+            enrolled,
+            int(initial_difficulty),
+        )
+
         return CourseEnrollmentResponseSchema(
             course_id=course_id,
             user_id=user_id,
@@ -225,6 +262,12 @@ class CourseService:
         course = await self.course_repository.set_visibility(
             course=course,
             is_public=is_public,
+        )
+        logger.info(
+            "Course visibility changed: user_id=%s course_id=%s is_public=%s",
+            user_id,
+            course_id,
+            is_public,
         )
         return CourseDetailSchema.model_validate(
             course,
