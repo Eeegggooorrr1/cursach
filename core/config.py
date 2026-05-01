@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     DEEPSEEK_MODEL: str = "deepseek-chat"
     DEEPSEEK_MAX_TOKENS: int = 4096
 
+    LOG_LEVEL: str = "INFO"
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / ".env"
     )

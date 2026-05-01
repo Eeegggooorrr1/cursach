@@ -4,12 +4,18 @@ from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from core.config import Settings
 from core.di.container import build_container
 from core.exceptions import AppError
+from core.logging import configure_logging
 from exception_handlers import app_error_handler, exception_handler
 from handlers.auth import router as auth_router
 from handlers.tests import router as tests_router
 from handlers.courses import router as courses_router
+
+
+settings = Settings()
+configure_logging(settings.LOG_LEVEL)
 
 
 @asynccontextmanager

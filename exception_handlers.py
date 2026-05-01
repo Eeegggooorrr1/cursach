@@ -1,5 +1,4 @@
 import logging
-import traceback
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -10,7 +9,9 @@ logger = logging.getLogger("app.handlers")
 
 
 async def app_error_handler(request: Request, exc: AppError):
-    logger.warning(
+    status_code = getattr(exc, "status_code", 500)
+    log = logger.warning if status_code >= 500 else logger.info
+    log(
         "AppError: path=%s code=%s message=%s extra=%s",
         request.url.path,
         getattr(exc, "code", None),
@@ -24,16 +25,15 @@ async def app_error_handler(request: Request, exc: AppError):
         }
     }
     return JSONResponse(
-        status_code=getattr(exc, "status_code", 500), content=content
+        status_code=status_code, content=content
     )
 
 
 async def exception_handler(request: Request, exc: Exception):
-    logger.error(
-        "Unhandled exception at %s: %s\n%s",
+    logger.exception(
+        "Unhandled exception at %s: %s",
         request.url.path,
         exc,
-        traceback.format_exc(),
     )
     return JSONResponse(
         status_code=500,
