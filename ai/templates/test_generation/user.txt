@@ -8,8 +8,9 @@
 - Верни только валидный JSON.
 - Без markdown и без пояснений.
 - Ровно {{ questions_count }} вопросов.
-- Ровно {{ options_count }} вариантов ответа в каждом вопросе.
-- В каждом вопросе ровно один правильный ответ.
+- Вопросы могут быть single_choice или multiple_choice.
+- Для single_choice используй {{ single_choice_options_range }} вариантов ответа и один правильный вариант.
+- Для multiple_choice используй {{ multiple_choice_options_range }} вариантов ответа и несколько правильных вариантов.
 
 Подтемы с количеством вопросов и сложностью:
 {{ subtopics }}
@@ -24,8 +25,9 @@
     {
       "subtopic": "...",
       "text": "...",
+      "question_type": "single_choice",
       "options": ["...", "...", "..."],
-      "correct_option_index": 0
+      "correct_option_indexes": [0]
     }
   ]
 }

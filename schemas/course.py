@@ -166,6 +166,7 @@ class ReviewQuestionSchema(OrmSchema):
     id: int
     subtopic_id: int
     prompt: str
+    is_multiple_choice: bool
     options: list[ReviewOptionSchema]
 
     @classmethod
@@ -174,6 +175,7 @@ class ReviewQuestionSchema(OrmSchema):
             id=q.id,
             subtopic_id=q.subtopic_id,
             prompt=q.prompt,
+            is_multiple_choice=q.is_multiple_choice,
             options=[
                 ReviewOptionSchema.model_validate(opt, from_attributes=True)
                 for opt in sorted(q.answer_options, key=lambda x: x.position)
@@ -205,6 +207,7 @@ class ReviewTestSchema(StrictSchema):
 class ReviewAttemptSchema(OrmSchema):
     question_id: int
     selected_option_id: int | None
+    selected_option_ids: list[int]
     is_correct: bool
 
 

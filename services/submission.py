@@ -63,15 +63,18 @@ class TestSubmissionPolicy:
 
         for question in test.questions:
             answer = answers_by_question_id[question.id]
-            is_correct = any(
-                option.id == answer.selected_option_id and option.is_correct
+            selected_option_ids = set(answer.selected_option_ids)
+            correct_option_ids = {
+                option.id
                 for option in question.answer_options
-            )
+                if option.is_correct
+            }
+            is_correct = selected_option_ids == correct_option_ids
 
             attempts.append(
                 QuestionAttemptDraft(
                     question_id=question.id,
-                    selected_option_id=answer.selected_option_id,
+                    selected_option_ids=answer.selected_option_ids,
                     is_correct=is_correct,
                 )
             )
@@ -284,7 +287,14 @@ class TestSubmissionService:
             valid_option_ids = {
                 option.id for option in question.answer_options
             }
-            if answer.selected_option_id not in valid_option_ids:
+            selected_option_ids = set(answer.selected_option_ids)
+
+            if not selected_option_ids.issubset(valid_option_ids):
                 raise InvalidTestSubmissionError(
                     f"selected_option_id does not belong to question_id={question.id}"
+                )
+
+            if not question.is_multiple_choice and len(selected_option_ids) != 1:
+                raise InvalidTestSubmissionError(
+                    f"single choice question_id={question.id} requires exactly one selected option"
                 )

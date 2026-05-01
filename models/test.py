@@ -60,6 +60,11 @@ class Question(Base):
         index=True,
     )
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    is_multiple_choice: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
 
     test: Mapped["Test"] = relationship(back_populates="questions")

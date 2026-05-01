@@ -6,7 +6,8 @@ class PreparedQuestionData:
     subtopic_id: int
     prompt: str
     options: list[str]
-    correct_option_index: int
+    correct_option_indexes: list[int]
+    is_multiple_choice: bool = False
 
     def __post_init__(self):
         if not self.prompt.strip():
@@ -23,17 +24,35 @@ class PreparedQuestionData:
         if len(set(normalized_options)) != len(normalized_options):
             raise ValueError("Options must be unique")
 
-        if not (0 <= self.correct_option_index < len(normalized_options)):
-            raise ValueError("correct_option_index out of range")
+        correct_indexes = list(self.correct_option_indexes)
+        if len(set(correct_indexes)) != len(correct_indexes):
+            raise ValueError("Correct option indexes must be unique")
+
+        if any(
+            index < 0 or index >= len(normalized_options)
+            for index in correct_indexes
+        ):
+            raise ValueError("correct_option_indexes out of range")
+
+        if self.is_multiple_choice:
+            if len(correct_indexes) < 2:
+                raise ValueError(
+                    "Multiple choice question must have at least two correct options"
+                )
+        elif len(correct_indexes) != 1:
+            raise ValueError(
+                "Single choice question must have exactly one correct option"
+            )
 
         object.__setattr__(self, "options", normalized_options)
         object.__setattr__(self, "prompt", self.prompt.strip())
+        object.__setattr__(self, "correct_option_indexes", correct_indexes)
 
 
 @dataclass(frozen=True)
 class QuestionAttemptDraft:
     question_id: int
-    selected_option_id: int
+    selected_option_ids: list[int]
     is_correct: bool
 
 

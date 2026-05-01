@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -39,8 +40,35 @@ class GeneratedQuestionSchema(BaseModel):
 
     subtopic: str = Field(min_length=1)
     text: str = Field(min_length=1)
+    question_type: Literal["single_choice", "multiple_choice"] = "single_choice"
     options: list[str] = Field(min_length=2)
-    correct_option_index: int = Field(ge=0)
+    correct_option_indexes: list[int] = Field(min_length=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_answer_shape(cls, value):
+        if not isinstance(value, dict):
+            return value
+
+        data = dict(value)
+        legacy_correct_index = data.pop("correct_option_index", None)
+        if (
+            "correct_option_indexes" not in data
+            and legacy_correct_index is not None
+        ):
+            data["correct_option_indexes"] = [legacy_correct_index]
+
+        if "question_type" not in data and isinstance(
+            data.get("correct_option_indexes"),
+            list,
+        ):
+            data["question_type"] = (
+                "multiple_choice"
+                if len(data["correct_option_indexes"]) > 1
+                else "single_choice"
+            )
+
+        return data
 
     @field_validator("subtopic", "text", mode="before")
     @classmethod
@@ -73,16 +101,42 @@ class GeneratedQuestionSchema(BaseModel):
         if len(set(self.options)) != len(self.options):
             raise ValueError("duplicated options in one question")
 
-        if not 0 <= self.correct_option_index < len(self.options):
-            raise ValueError("correct_option_index out of range")
-
-        expected_options_count = (info.context or {}).get("options_count")
-        if (
-            expected_options_count is not None
-            and len(self.options) != expected_options_count
+        if len(set(self.correct_option_indexes)) != len(
+            self.correct_option_indexes
         ):
+            raise ValueError("correct_option_indexes must be unique")
+
+        if any(
+            index < 0 or index >= len(self.options)
+            for index in self.correct_option_indexes
+        ):
+            raise ValueError("correct_option_indexes out of range")
+
+        ctx = info.context or {}
+        single_range = ctx.get("single_choice_options_range", (2, 6))
+        multiple_range = ctx.get("multiple_choice_options_range", (3, 9))
+
+        if self.question_type == "single_choice":
+            if len(self.correct_option_indexes) != 1:
+                raise ValueError(
+                    "single_choice question must have exactly one correct option"
+                )
+            min_options, max_options = single_range
+        else:
+            if len(self.correct_option_indexes) < 2:
+                raise ValueError(
+                    "multiple_choice question must have at least two correct options"
+                )
+            if len(self.correct_option_indexes) >= len(self.options):
+                raise ValueError(
+                    "multiple_choice question must have at least one incorrect option"
+                )
+            min_options, max_options = multiple_range
+
+        if not min_options <= len(self.options) <= max_options:
             raise ValueError(
-                f"each question must have exactly {expected_options_count} options"
+                f"{self.question_type} question must have between "
+                f"{min_options} and {max_options} options"
             )
 
         return self

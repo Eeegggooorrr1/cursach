@@ -25,7 +25,7 @@ from services.course import CourseService, CourseGenerationPolicy
 from services.security import SecurityService
 from services.submission import TestSubmissionPolicy, \
     TestSubmissionService
-from services.test import TestService
+from services.test import TestQuestionCountPolicy, TestService
 
 
 class ServicesProvider(Provider):
@@ -77,6 +77,7 @@ class ServicesProvider(Provider):
         question_attempt_repository: QuestionAttemptRepository,
         llm_client: LLMClient,
         prompt_factory: TestGenerationPromptFactory,
+        question_count_policy: TestQuestionCountPolicy,
     ) -> TestService:
         return TestService(
             course_repository=course_repository,
@@ -88,6 +89,7 @@ class ServicesProvider(Provider):
             question_attempt_repository=question_attempt_repository,
             llm_client=llm_client,
             prompt_factory=prompt_factory,
+            question_count_policy=question_count_policy,
         )
 
     @provide(scope=Scope.REQUEST)
@@ -139,3 +141,7 @@ class ServicesProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def course_policy(self) -> CourseGenerationPolicy:
         return CourseGenerationPolicy()
+
+    @provide(scope=Scope.REQUEST)
+    def test_question_count_policy(self) -> TestQuestionCountPolicy:
+        return TestQuestionCountPolicy()

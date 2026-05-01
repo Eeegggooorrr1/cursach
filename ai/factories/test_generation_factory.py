@@ -17,7 +17,8 @@ class TestGenerationPromptFactory:
         test_no: int,
         subtopics: list[dict[str, Any]],
         recent_tests_questions: list[str],
-        options_count: int = 2,
+        single_choice_options_range: tuple[int, int] = (2, 6),
+        multiple_choice_options_range: tuple[int, int] = (3, 9),
     ) -> Prompt:
         """
         [
@@ -56,7 +57,12 @@ class TestGenerationPromptFactory:
             course_prompt=(course_prompt or "").strip(),
             test_no=test_no,
             questions_count=total_questions,
-            options_count=options_count,
+            single_choice_options_range=self._format_range(
+                single_choice_options_range,
+            ),
+            multiple_choice_options_range=self._format_range(
+                multiple_choice_options_range,
+            ),
             subtopics=subtopics_block,
             recent_tests_questions=recent_questions_block,
         )
@@ -66,7 +72,12 @@ class TestGenerationPromptFactory:
             course_prompt=(course_prompt or "").strip(),
             test_no=test_no,
             questions_count=total_questions,
-            options_count=options_count,
+            single_choice_options_range=self._format_range(
+                single_choice_options_range,
+            ),
+            multiple_choice_options_range=self._format_range(
+                multiple_choice_options_range,
+            ),
             subtopics=subtopics_block,
             recent_tests_questions=recent_questions_block,
         )
@@ -98,3 +109,7 @@ class TestGenerationPromptFactory:
             return "[]"
 
         return "\n".join(f"- {q}" for q in cleaned)
+
+    @staticmethod
+    def _format_range(value: tuple[int, int]) -> str:
+        return f"{value[0]}-{value[1]}"

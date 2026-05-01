@@ -40,15 +40,17 @@ class TestRepository:
                 test_id=test.id,
                 subtopic_id=question_data.subtopic_id,
                 prompt=question_data.prompt,
+                is_multiple_choice=question_data.is_multiple_choice,
                 position=question_position,
             )
 
+            correct_option_indexes = set(question_data.correct_option_indexes)
             question.answer_options = [
                 AnswerOption(
                     position=option_position,
                     text=option_text,
                     is_correct=(
-                        option_position == question_data.correct_option_index
+                        option_position in correct_option_indexes
                     ),
                 )
                 for option_position, option_text in enumerate(

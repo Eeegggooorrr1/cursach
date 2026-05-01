@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
+    relationship,
 )
 
 from models.base import Base
@@ -173,4 +174,26 @@ class QuestionAttempt(Base):
             "question_id",
             name="uq_attempt_progress_question",
         ),
+    )
+
+    selected_options: Mapped[list["QuestionAttemptSelectedOption"]] = relationship(
+        back_populates="attempt",
+        cascade="all, delete-orphan",
+    )
+
+
+class QuestionAttemptSelectedOption(Base):
+    __tablename__ = "question_attempt_selected_options"
+
+    question_attempt_id: Mapped[int] = mapped_column(
+        ForeignKey("question_attempts.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    answer_option_id: Mapped[int] = mapped_column(
+        ForeignKey("answer_options.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    attempt: Mapped["QuestionAttempt"] = relationship(
+        back_populates="selected_options",
     )

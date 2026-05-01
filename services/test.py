@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -15,6 +16,8 @@ from core.exceptions import (
     TestReviewNotAvailableError,
 )
 from models.progress import CourseProgressStatusEnum, TestProgressStatusEnum
+from models.course import Subtopic
+from models.progress import SubtopicProgress
 from repositories.course import CourseRepository
 from repositories.course_progress import CourseProgressRepository
 from repositories.question_attempt import QuestionAttemptRepository
@@ -29,6 +32,74 @@ from schemas.course import (
 )
 
 
+@dataclass(frozen=True)
+class TestQuestionCountPolicy:
+    min_questions: int = 10
+    max_questions: int = 24
+
+    def build_subtopic_plan(
+        self,
+        subtopics: list[Subtopic],
+        progress_by_subtopic_id: dict[int, SubtopicProgress],
+        test_no: int,
+    ) -> list[dict[str, Any]]:
+        if not subtopics:
+            return []
+
+        selected_subtopics = self._select_subtopics(
+            subtopics=subtopics,
+            test_no=test_no,
+        )
+        total_questions = min(
+            self.max_questions,
+            max(self.min_questions, len(selected_subtopics)),
+        )
+        extra_questions = total_questions - len(selected_subtopics)
+
+        plan = [
+            {
+                "name": subtopic.name,
+                "difficulty": self._difficulty_for(
+                    subtopic=subtopic,
+                    progress_by_subtopic_id=progress_by_subtopic_id,
+                ),
+                "questions_count": 1,
+            }
+            for subtopic in selected_subtopics
+        ]
+
+        weighted_indexes = sorted(
+            range(len(plan)),
+            key=lambda index: (-plan[index]["difficulty"], index),
+        )
+        for index in range(extra_questions):
+            plan[weighted_indexes[index % len(weighted_indexes)]][
+                "questions_count"
+            ] += 1
+
+        return plan
+
+    def _select_subtopics(
+        self,
+        subtopics: list[Subtopic],
+        test_no: int,
+    ) -> list[Subtopic]:
+        if len(subtopics) <= self.max_questions:
+            return subtopics
+
+        start = ((test_no - 1) * self.max_questions) % len(subtopics)
+        rotated = subtopics[start:] + subtopics[:start]
+        return rotated[: self.max_questions]
+
+    @staticmethod
+    def _difficulty_for(
+        subtopic: Subtopic,
+        progress_by_subtopic_id: dict[int, SubtopicProgress],
+    ) -> int:
+        progress = progress_by_subtopic_id.get(subtopic.id)
+        return progress.current_difficulty if progress is not None else 0
+
+
 @dataclass
 class TestService:
     course_repository: CourseRepository
@@ -40,6 +111,7 @@ class TestService:
     question_attempt_repository: QuestionAttemptRepository
     llm_client: LLMClient
     prompt_factory: TestGenerationPromptFactory
+    question_count_policy: TestQuestionCountPolicy
 
     async def create_test(self, course_id: int, user_id: int):
         course = await self.course_repository.find_by_id_and_user(
@@ -82,18 +154,11 @@ class TestService:
             user_id=user_id,
         )
 
-        prompt_subtopics = [
-            {
-                "name": subtopic.name,
-                "difficulty": (
-                    subtopic_progress_by_id[subtopic.id].current_difficulty
-                    if subtopic.id in subtopic_progress_by_id
-                    else 0
-                ),
-                "questions_count": 1,
-            }
-            for subtopic in subtopics
-        ]
+        prompt_subtopics = self.question_count_policy.build_subtopic_plan(
+            subtopics=subtopics,
+            progress_by_subtopic_id=subtopic_progress_by_id,
+            test_no=next_position,
+        )
 
         recent_tests_questions = (
             await self.test_progress_repository.get_last_questions(
@@ -140,7 +205,8 @@ class TestService:
                 raw_answer,
                 context={
                     "questions_count": sum(questions_by_subtopic.values()),
-                    "options_count": 2,
+                    "single_choice_options_range": (2, 6),
+                    "multiple_choice_options_range": (3, 9),
                     "allowed_subtopic_names": allowed_subtopic_names,
                     "questions_by_subtopic": questions_by_subtopic,
                     "recent_questions_normalized": recent_questions_normalized,
@@ -210,9 +276,11 @@ class TestService:
         return TestReviewResponseSchema(
             test=ReviewTestSchema.from_orm_test(test),
             attempts=[
-                ReviewAttemptSchema.model_validate(
-                    attempt,
-                    from_attributes=True,
+                ReviewAttemptSchema(
+                    question_id=attempt.question_id,
+                    selected_option_id=attempt.selected_option_id,
+                    selected_option_ids=self._selected_option_ids(attempt),
+                    is_correct=attempt.is_correct,
                 )
                 for attempt in attempts
             ],
@@ -232,11 +300,25 @@ class TestService:
                     subtopic_id=subtopic_name_to_id[subtopic_key],
                     prompt=question.text,
                     options=question.options,
-                    correct_option_index=question.correct_option_index,
+                    correct_option_indexes=question.correct_option_indexes,
+                    is_multiple_choice=(
+                        question.question_type == "multiple_choice"
+                    ),
                 )
             )
 
         return prepared_questions
+
+    @staticmethod
+    def _selected_option_ids(attempt) -> list[int]:
+        selected_ids = sorted(
+            item.answer_option_id for item in attempt.selected_options
+        )
+        if selected_ids:
+            return selected_ids
+        if attempt.selected_option_id is not None:
+            return [attempt.selected_option_id]
+        return []
 
     @staticmethod
     def _normalize_text(text: str) -> str:
