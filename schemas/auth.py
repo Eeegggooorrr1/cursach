@@ -19,3 +19,4 @@ class UserRegisterSchema(StrictSchema):
     email: EmailStr
     password: str
     username: str
+    profile_description: str | None = None

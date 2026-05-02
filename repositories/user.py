@@ -42,7 +42,16 @@ class UserRepository(
     async def update_user(
         self, user_id: int, user_data: UserUpdateSchema
     ) -> User | None:
-        return await self.update_by_id(user_id, user_data)
+        user = await self.find_user_by_id(user_id)
+        if user is None:
+            return None
+
+        data = user_data.model_dump(exclude_unset=True)
+        for field, value in data.items():
+            setattr(user, field, value)
+
+        await self.session.flush()
+        return user
 
     async def delete_user(self, user_id: int) -> bool:
         return await self.delete_by_id(user_id)

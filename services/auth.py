@@ -34,7 +34,11 @@ class AuthService:
         return access_token, refresh_token
 
     async def register(
-        self, email: EmailStr, password: str, username: str
+        self,
+        email: EmailStr,
+        password: str,
+        username: str,
+        profile_description: str | None = None,
     ) -> tuple[str, str]:
         user = await self.user_repository.find_user_by_email(email=email)
         if user:
@@ -44,7 +48,10 @@ class AuthService:
 
         user = await self.user_repository.create_user(
             UserCreateSchema(
-                email=email, password=hashed_password, username=username
+                email=email,
+                password=hashed_password,
+                username=username,
+                profile_description=profile_description,
             )
         )
 

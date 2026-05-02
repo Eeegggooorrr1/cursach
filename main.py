@@ -12,6 +12,7 @@ from exception_handlers import app_error_handler, exception_handler
 from handlers.auth import router as auth_router
 from handlers.tests import router as tests_router
 from handlers.courses import router as courses_router
+from handlers.profile import router as profile_router
 
 
 settings = Settings()
@@ -29,6 +30,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(tests_router)
 app.include_router(courses_router)
+app.include_router(profile_router)
 
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, exception_handler)
@@ -46,6 +48,3 @@ container = build_container()
 setup_dishka(container=container, app=app)
 
 
-# TODO: поставить возможность получать тест ежедневно в ... -> крон каждые n минут \
-# ходит в бд и если видит что через пару минут это время то в бэкграундджобе составляет тест\
-# и шлет на почту уведу

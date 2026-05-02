@@ -43,7 +43,10 @@ async def register(
 ) -> dict[str, str]:
 
     access_token, refresh_token = await auth_service.register(
-        user.email, user.password, user.username
+        user.email,
+        user.password,
+        user.username,
+        user.profile_description,
     )
 
     cookie_manager.set_auth_cookies(response, access_token, refresh_token)
