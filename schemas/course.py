@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import Field, model_validator
 
@@ -55,6 +56,18 @@ class CourseEnrollSchema(StrictSchema):
 
 class CourseVisibilityUpdateSchema(StrictSchema):
     is_public: bool
+
+
+class CoursePublicSearchSchema(StrictSchema):
+    q: str | None = None
+    sort: Literal["created_desc", "created_asc"] = "created_desc"
+
+    @model_validator(mode="after")
+    def normalize_query(self):
+        if self.q is not None:
+            normalized = " ".join(self.q.strip().split())
+            self.q = normalized or None
+        return self
 
 
 class CourseEnrollmentResponseSchema(StrictSchema):

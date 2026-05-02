@@ -12,6 +12,7 @@ from core.dto import SubtopicProgressUpdate
 from core.enums import Difficulty
 from core.exceptions import (
     CourseNotFoundError,
+    ForbiddenError,
     InvalidCourseStructureError,
     InvalidLLMResponseError,
 )
@@ -192,6 +193,51 @@ class CourseService:
             total=total,
             limit=limit,
             offset=offset,
+        )
+
+    async def delete_course_for_user(
+        self,
+        user_id: int,
+        course_id: int,
+    ) -> None:
+        course = await self.course_repository.get_course_by_id(
+            course_id=course_id,
+        )
+        if course is None:
+            raise CourseNotFoundError()
+
+        link = await self.course_repository.find_user_course_link(
+            user_id=user_id,
+            course_id=course_id,
+        )
+        if link is None and course.creator_id != user_id:
+            raise CourseNotFoundError()
+
+        if course.creator_id != user_id and link is None:
+            raise ForbiddenError()
+
+        enrollments_count = (
+            await self.course_repository.count_course_enrollments(
+                course_id=course_id,
+            )
+        )
+        if course.creator_id == user_id and enrollments_count <= 1:
+            await self.course_repository.delete_course(course)
+            logger.info(
+                "Course deleted: user_id=%s course_id=%s mode=full",
+                user_id,
+                course_id,
+            )
+            return
+
+        await self.course_repository.delete_user_course_data(
+            user_id=user_id,
+            course_id=course_id,
+        )
+        logger.info(
+            "Course user data deleted: user_id=%s course_id=%s mode=user_only",
+            user_id,
+            course_id,
         )
 
     async def get_public_course_detail(

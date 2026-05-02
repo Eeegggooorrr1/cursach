@@ -2,7 +2,7 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Response, status
 
 from core.di.providers.auth import RequireRoles
 from models.user import RoleEnum
@@ -18,6 +18,7 @@ from schemas.course import (
     CourseEnrollmentResponseSchema,
     CourseVisibilityUpdateSchema,
     CourseDetailSchema,
+    CoursePublicSearchSchema,
     PublicCourseDetailSchema,
 )
 from schemas.test import (
@@ -26,6 +27,7 @@ from schemas.test import (
     TestSubmitResponseSchema,
 )
 from services.course import CourseService
+from services.course_search import CourseSearchService
 from services.submission import TestSubmissionService
 from services.test import TestService
 
@@ -104,13 +106,19 @@ async def get_my_courses(
 
 @router.get("/public")
 async def get_public_courses(
-    course_service: FromDishka[CourseService],
+    course_search_service: FromDishka[CourseSearchService],
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    q: str | None = Query(default=None, min_length=1, max_length=120),
+    sort: str = Query(
+        default="created_desc",
+        pattern="^(created_desc|created_asc)$",
+    ),
 ) -> PaginatedCourseListSchema:
-    return await course_service.get_public_courses(
+    return await course_search_service.search_public_courses(
         limit=limit,
         offset=offset,
+        filters=CoursePublicSearchSchema(q=q, sort=sort),
     )
 
 
@@ -152,6 +160,21 @@ async def update_course_visibility(
         course_id=course_id,
         is_public=payload.is_public,
     )
+
+
+@router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_course(
+    course_id: int,
+    user: Annotated[
+        UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
+    ],
+    course_service: FromDishka[CourseService],
+) -> Response:
+    await course_service.delete_course_for_user(
+        user_id=user.id,
+        course_id=course_id,
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{course_id}")

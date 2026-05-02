@@ -22,10 +22,12 @@ from repositories.user import UserRepository
 from services.auth import AuthService
 from services.cookie import CookieManager
 from services.course import CourseService, CourseGenerationPolicy
+from services.course_search import CourseSearchService
 from services.security import SecurityService
 from services.submission import TestSubmissionPolicy, \
     TestSubmissionService
 from services.test import TestQuestionCountPolicy, TestService
+from services.user import UserService
 
 
 class ServicesProvider(Provider):
@@ -54,6 +56,13 @@ class ServicesProvider(Provider):
             user_repository=user_repository,
             security_service=security_service,
         )
+
+    @provide(scope=Scope.REQUEST)
+    def user_service(
+        self,
+        user_repository: UserRepository,
+    ) -> UserService:
+        return UserService(user_repository=user_repository)
 
     @provide(scope=Scope.REQUEST)
     def seed_service(
@@ -114,6 +123,13 @@ class ServicesProvider(Provider):
             subtopic_repository=subtopic_repository,
             subtopic_progress_repository=subtopic_progress_repository,
         )
+
+    @provide(scope=Scope.REQUEST)
+    def course_search_service(
+        self,
+        course_repository: CourseRepository,
+    ) -> CourseSearchService:
+        return CourseSearchService(course_repository=course_repository)
 
     @provide(scope=Scope.REQUEST)
     def submission_service(

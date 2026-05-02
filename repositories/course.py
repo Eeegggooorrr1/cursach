@@ -1,9 +1,11 @@
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ai.schemas import GeneratedCourseStructureSchema
 from models.course import Course, Subtopic, Topic
+from models.progress import CourseProgress, SubtopicProgress
+from models.test import Test
 from models.user import UserCourse
 
 
@@ -113,21 +115,44 @@ class CourseRepository:
         self,
         limit: int,
         offset: int,
+        query: str | None = None,
+        sort: str = "created_desc",
     ) -> list[Course]:
         stmt = (
             select(Course)
             .where(Course.is_public.is_(True))
-            .order_by(Course.created_at.desc(), Course.id.desc())
             .limit(limit)
             .offset(offset)
         )
+        if query:
+            pattern = f"%{query}%"
+            stmt = stmt.where(
+                or_(
+                    Course.title.ilike(pattern),
+                    Course.comment.ilike(pattern),
+                )
+            )
+
+        if sort == "created_asc":
+            stmt = stmt.order_by(Course.created_at.asc(), Course.id.asc())
+        else:
+            stmt = stmt.order_by(Course.created_at.desc(), Course.id.desc())
+
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def count_public_courses(self) -> int:
+    async def count_public_courses(self, query: str | None = None) -> int:
         stmt = select(func.count(Course.id)).where(
             Course.is_public.is_(True)
         )
+        if query:
+            pattern = f"%{query}%"
+            stmt = stmt.where(
+                or_(
+                    Course.title.ilike(pattern),
+                    Course.comment.ilike(pattern),
+                )
+            )
         result = await self.session.execute(stmt)
         return int(result.scalar_one())
 
@@ -209,3 +234,51 @@ class CourseRepository:
         self.session.add(UserCourse(user_id=user_id, course_id=course_id))
         await self.session.flush()
         return True
+
+    async def count_course_enrollments(self, course_id: int) -> int:
+        stmt = select(func.count(UserCourse.user_id)).where(
+            UserCourse.course_id == course_id,
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def delete_course(self, course: Course) -> None:
+        await self.session.delete(course)
+        await self.session.flush()
+
+    async def delete_user_course_data(
+        self,
+        user_id: int,
+        course_id: int,
+    ) -> None:
+        subtopic_ids = (
+            select(Subtopic.id)
+            .join(Topic, Topic.id == Subtopic.topic_id)
+            .where(Topic.course_id == course_id)
+        )
+
+        await self.session.execute(
+            delete(SubtopicProgress).where(
+                SubtopicProgress.user_id == user_id,
+                SubtopicProgress.subtopic_id.in_(subtopic_ids),
+            )
+        )
+        await self.session.execute(
+            delete(CourseProgress).where(
+                CourseProgress.user_id == user_id,
+                CourseProgress.course_id == course_id,
+            )
+        )
+        await self.session.execute(
+            delete(Test).where(
+                Test.user_id == user_id,
+                Test.course_id == course_id,
+            )
+        )
+        await self.session.execute(
+            delete(UserCourse).where(
+                UserCourse.user_id == user_id,
+                UserCourse.course_id == course_id,
+            )
+        )
+        await self.session.flush()
