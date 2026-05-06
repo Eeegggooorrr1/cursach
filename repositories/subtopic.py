@@ -1,12 +1,14 @@
+from dataclasses import dataclass
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Subtopic, Topic
 
 
+@dataclass
 class SubtopicRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
+    session: AsyncSession
 
     async def find_by_course_id(self, course_id: int) -> list[Subtopic]:
         stmt = (

@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,9 +7,9 @@ from core.dto import SubtopicProgressUpdate
 from models.progress import SubtopicProgress
 
 
+@dataclass
 class SubtopicProgressRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
+    session: AsyncSession
 
     async def find_by_user_and_subtopic_ids(
         self,

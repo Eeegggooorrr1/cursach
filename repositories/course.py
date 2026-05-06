@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -9,11 +11,9 @@ from models.test import Test
 from models.user import UserCourse
 
 
+@dataclass
 class CourseRepository:
-    model = Course
-
-    def __init__(self, session: AsyncSession) -> None:
-        self.session = session
+    session: AsyncSession
 
     async def create_course(
         self,

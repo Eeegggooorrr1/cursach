@@ -1,12 +1,14 @@
+from dataclasses import dataclass
+
 from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.progress import CourseProgress, CourseProgressStatusEnum
 
 
+@dataclass
 class CourseProgressRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
+    session: AsyncSession
 
     async def find_by_course_and_user(
         self,

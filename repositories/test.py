@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -6,9 +8,9 @@ from core.dto import PreparedQuestionData
 from models.test import AnswerOption, Question, Test
 
 
+@dataclass
 class TestRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
+    session: AsyncSession
 
     async def get_next_position(self, course_id: int, user_id: int) -> int:
         stmt = select(func.coalesce(func.max(Test.position), 0) + 1).where(

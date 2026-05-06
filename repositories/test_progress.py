@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy import select, func
@@ -7,9 +8,9 @@ from models import Question, Test
 from models.progress import TestProgress, TestProgressStatusEnum
 
 
+@dataclass
 class TestProgressRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
+    session: AsyncSession
 
     async def create_in_progress(
         self,
