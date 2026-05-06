@@ -16,8 +16,6 @@ seed:
 break:
 	taskkill //F //IM python.exe //IM python3.exe //T
 
-
-
 up:
 	docker compose up
 
