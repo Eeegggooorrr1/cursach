@@ -7,11 +7,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - '15432:5432'
+      - "${POSTGRES_PORT:?POSTGRES_PORT is required}:5432"
     environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: curs
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
 
 volumes:
   postgres_data:
