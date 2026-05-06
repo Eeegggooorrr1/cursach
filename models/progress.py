@@ -142,10 +142,9 @@ class SubtopicProgress(Base):
 
 
 class QuestionAttempt(Base):
-    __tablename__ = "question_attempts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    course_test_progress_id: Mapped[int] = mapped_column(
+    test_progress_id: Mapped[int] = mapped_column(
         ForeignKey("test_progress.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -154,10 +153,6 @@ class QuestionAttempt(Base):
         ForeignKey("questions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
-    )
-    selected_option_id: Mapped[int | None] = mapped_column(
-        ForeignKey("answer_options.id", ondelete="SET NULL"),
-        nullable=True,
     )
     is_correct: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False
@@ -170,9 +165,9 @@ class QuestionAttempt(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "course_test_progress_id",
+            "test_progress_id",
             "question_id",
-            name="uq_attempt_progress_question",
+            name="uq_attempt_test_progress_question",
         ),
     )
 
@@ -183,7 +178,6 @@ class QuestionAttempt(Base):
 
 
 class QuestionAttemptSelectedOption(Base):
-    __tablename__ = "question_attempt_selected_options"
 
     question_attempt_id: Mapped[int] = mapped_column(
         ForeignKey("question_attempts.id", ondelete="CASCADE"),

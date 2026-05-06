@@ -313,7 +313,7 @@ class TestSubmissionService:
 
             if not selected_option_ids.issubset(valid_option_ids):
                 raise InvalidTestSubmissionError(
-                    f"selected_option_id does not belong to question_id={question.id}"
+                    f"selected option does not belong to question_id={question.id}"
                 )
 
             if not question.is_multiple_choice and len(selected_option_ids) != 1:

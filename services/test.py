@@ -316,7 +316,6 @@ class TestService:
             attempts=[
                 ReviewAttemptSchema(
                     question_id=attempt.question_id,
-                    selected_option_id=attempt.selected_option_id,
                     selected_option_ids=self._selected_option_ids(attempt),
                     is_correct=attempt.is_correct,
                 )
@@ -349,14 +348,9 @@ class TestService:
 
     @staticmethod
     def _selected_option_ids(attempt) -> list[int]:
-        selected_ids = sorted(
+        return sorted(
             item.answer_option_id for item in attempt.selected_options
         )
-        if selected_ids:
-            return selected_ids
-        if attempt.selected_option_id is not None:
-            return [attempt.selected_option_id]
-        return []
 
     @staticmethod
     def _normalize_text(text: str) -> str:

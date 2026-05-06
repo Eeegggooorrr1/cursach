@@ -219,7 +219,6 @@ class ReviewTestSchema(StrictSchema):
 
 class ReviewAttemptSchema(OrmSchema):
     question_id: int
-    selected_option_id: int | None
     selected_option_ids: list[int]
     is_correct: bool
 

@@ -23,13 +23,8 @@ class QuestionAttemptRepository:
         for item in attempts:
             selected_option_ids = list(item.selected_option_ids)
             row = QuestionAttempt(
-                course_test_progress_id=test_progress_id,
+                test_progress_id=test_progress_id,
                 question_id=item.question_id,
-                selected_option_id=(
-                    selected_option_ids[0]
-                    if len(selected_option_ids) == 1
-                    else None
-                ),
                 is_correct=item.is_correct,
             )
             row.selected_options = [
@@ -49,7 +44,7 @@ class QuestionAttemptRepository:
         stmt = (
             select(QuestionAttempt)
             .where(
-                QuestionAttempt.course_test_progress_id == test_progress_id,
+                QuestionAttempt.test_progress_id == test_progress_id,
             )
             .options(selectinload(QuestionAttempt.selected_options))
         )

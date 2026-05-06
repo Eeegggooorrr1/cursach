@@ -48,25 +48,10 @@ class SubmitAnswerSchema(StrictSchema):
     question_id: int
     selected_option_ids: list[int] = Field(min_length=1)
 
-    @model_validator(mode="before")
-    @classmethod
-    def normalize_legacy_single_choice(cls, value):
-        if not isinstance(value, dict):
-            return value
-
-        data = dict(value)
-        selected_option_id = data.pop("selected_option_id", None)
-        if (
-            "selected_option_ids" not in data
-            and selected_option_id is not None
-        ):
-            data["selected_option_ids"] = [selected_option_id]
-        return data
-
     @model_validator(mode="after")
     def validate_unique_options(self):
         if len(set(self.selected_option_ids)) != len(self.selected_option_ids):
-            raise ValueError("duplicate selected_option_id in submit payload")
+            raise ValueError("duplicate selected option in submit payload")
         return self
 
 
