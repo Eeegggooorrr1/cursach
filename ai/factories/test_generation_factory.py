@@ -35,15 +35,6 @@ class TestGenerationPromptFactory:
         single_choice_options_range: tuple[int, int] = (2, 6),
         multiple_choice_options_range: tuple[int, int] = (3, 9),
     ) -> Prompt:
-        """
-        [
-            {
-                "name": str,
-                "difficulty": int,
-                "questions_count": int,
-            }
-        ]
-        """
 
         if not subtopics:
             raise ValueError("subtopics must not be empty")

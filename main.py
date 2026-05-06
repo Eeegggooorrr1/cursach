@@ -15,8 +15,7 @@ from handlers.courses import router as courses_router
 from handlers.profile import router as profile_router
 
 
-settings = Settings()
-configure_logging(settings.LOG_LEVEL)
+configure_logging(level="INFO")
 
 
 @asynccontextmanager

@@ -3,7 +3,7 @@ from logging.config import dictConfig
 
 
 def configure_logging(level: str = "INFO") -> None:
-    normalized_level = level.upper()
+    lvl = level.upper()
 
     dictConfig(
         {
@@ -22,12 +22,12 @@ def configure_logging(level: str = "INFO") -> None:
             },
             "root": {
                 "handlers": ["console"],
-                "level": normalized_level,
+                "level": lvl,
             },
             "loggers": {
-                "app": {"level": normalized_level, "propagate": True},
-                "ai": {"level": normalized_level, "propagate": True},
-                "services": {"level": normalized_level, "propagate": True},
+                "app": {"level": lvl, "propagate": True},
+                "ai": {"level": lvl, "propagate": True},
+                "services": {"level": lvl, "propagate": True},
                 "repositories": {"level": "WARNING", "propagate": True},
                 "sqlalchemy.engine": {
                     "level": "WARNING",
@@ -45,5 +45,5 @@ def configure_logging(level: str = "INFO") -> None:
 
     logging.getLogger("app.startup").info(
         "Logging configured: level=%s",
-        normalized_level,
+        lvl,
     )
