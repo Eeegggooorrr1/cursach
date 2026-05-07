@@ -14,6 +14,7 @@ from core.exceptions import (
     TokenExpiredError,
     TokenNotFoundError,
     TokenRevokedError,
+    UserBlockedError,
     UserNotFoundError,
 )
 from models.user import User
@@ -34,6 +35,7 @@ class SecurityService:
             "sub": str(user.id),
             "role": user.role.name,
             "username": user.username,
+            "is_blocked": user.is_blocked,
         }
 
     def get_password_hash(self, password: str) -> str:
@@ -109,6 +111,9 @@ class SecurityService:
         return payload
 
     async def issue_token_pair(self, user: User) -> tuple[str, str]:
+        if user.is_blocked:
+            raise UserBlockedError()
+
         access_token = self.issue_access_token(user)
         refresh_token = self.create_refresh_token()
         refresh_token_hashed = self._get_token_hash(refresh_token)
@@ -144,6 +149,9 @@ class SecurityService:
         user = await self.user_repository.find_user_by_id(token_record.user_id)
         if not user:
             raise UserNotFoundError()
+        if user.is_blocked:
+            await self.refresh_repository.revoke_all_for_user(user.id)
+            raise UserBlockedError()
 
         access_token = self.issue_access_token(user)
         new_refresh_token = self.create_refresh_token()

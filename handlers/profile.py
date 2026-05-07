@@ -4,7 +4,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends
 
-from core.di.providers.auth import RequireRoles
+from core.auth import RequireRoles
 from models.user import RoleEnum
 from schemas.auth import UserFromToken
 from schemas.user import UserProfileSchema, UserUpdateSchema

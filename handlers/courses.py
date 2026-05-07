@@ -4,7 +4,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, Path, Query, Response, status
 
-from core.di.providers.auth import RequireRoles
+from core.auth import RequireRoles
 from models.user import RoleEnum
 from schemas.auth import UserFromToken
 from schemas.course import (
@@ -16,6 +16,7 @@ from schemas.course import (
     TestReviewResponseSchema,
     CourseEnrollSchema,
     CourseEnrollmentResponseSchema,
+    CourseMembershipSchema,
     CourseVisibilityUpdateSchema,
     CourseDetailSchema,
     CoursePublicSearchSchema,
@@ -146,6 +147,20 @@ async def enroll_public_course(
     )
 
 
+@router.get("/{course_id}/membership")
+async def get_course_membership(
+    course_id: int,
+    user: Annotated[
+        UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
+    ],
+    course_service: FromDishka[CourseService],
+) -> CourseMembershipSchema:
+    return await course_service.get_course_membership(
+        user_id=user.id,
+        course_id=course_id,
+    )
+
+
 @router.patch("/{course_id}/visibility")
 async def update_course_visibility(
     course_id: int,
@@ -189,6 +204,7 @@ async def get_course_detail(
 ) -> PaginatedCourseDetailSchema:
     return await course_service.get_course_detail(
         user_id=user.id,
+        user_role=user.role,
         course_id=course_id,
         limit=limit,
         offset=offset,

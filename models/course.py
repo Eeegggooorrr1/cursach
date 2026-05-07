@@ -33,6 +33,11 @@ class Course(Base):
         default=False,
         nullable=False,
     )
+    is_public_allowed: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

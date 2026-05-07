@@ -8,7 +8,7 @@ from ai.schemas import GeneratedCourseStructureSchema
 from models.course import Course, Subtopic, Topic
 from models.progress import CourseProgress, SubtopicProgress
 from models.test import Test
-from models.user import UserCourse
+from models.user import User, UserCourse
 
 
 @dataclass
@@ -206,6 +206,41 @@ class CourseRepository:
         course.is_public = is_public
         await self.session.flush()
         return course
+
+    async def set_admin_public_access(
+        self,
+        course: Course,
+        *,
+        is_public: bool,
+        is_public_allowed: bool,
+    ) -> Course:
+        course.is_public = is_public
+        course.is_public_allowed = is_public_allowed
+        await self.session.flush()
+        return course
+
+    async def find_restricted_courses_paginated(
+        self,
+        limit: int,
+        offset: int,
+    ) -> list[Course]:
+        stmt = (
+            select(Course)
+            .where(Course.is_public_allowed.is_(False))
+            .options(selectinload(Course.creator).selectinload(User.role))
+            .order_by(Course.created_at.desc(), Course.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_restricted_courses(self) -> int:
+        stmt = select(func.count(Course.id)).where(
+            Course.is_public_allowed.is_(False),
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
 
     async def find_user_course_link(
         self,

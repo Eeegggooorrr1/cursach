@@ -8,6 +8,7 @@ class UserFromToken(StrictSchema):
     id: int
     username: str
     role: RoleEnum
+    is_blocked: bool = False
 
 
 class UserLoginSchema(StrictSchema):

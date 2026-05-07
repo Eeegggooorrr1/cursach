@@ -45,3 +45,7 @@ class Settings(BaseSettings):
             "secret_key": self.SECRET_KEY,
             "algorithm": self.ALGORITHM,
         }
+
+
+def create_settings() -> Settings:
+    return Settings()

@@ -42,6 +42,16 @@ class ForbiddenError(AppError):
     message = "Forbidden"
 
 
+class UserBlockedError(ForbiddenError):
+    code = "user_blocked"
+    message = "Пользователь заблокирован"
+
+
+class CoursePublicAccessRestrictedError(ForbiddenError):
+    code = "course_public_access_restricted"
+    message = "Администратор ограничил публичный доступ к курсу"
+
+
 class NotFoundError(AppError):
     status_code = 404
     code = "not_found"

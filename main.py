@@ -10,6 +10,7 @@ from core.exceptions import AppError
 from core.logging import configure_logging
 from exception_handlers import app_error_handler, exception_handler
 from handlers.auth import router as auth_router
+from handlers.admin import router as admin_router
 from handlers.tests import router as tests_router
 from handlers.courses import router as courses_router
 from handlers.profile import router as profile_router
@@ -27,6 +28,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(auth_router)
+app.include_router(admin_router)
 app.include_router(tests_router)
 app.include_router(courses_router)
 app.include_router(profile_router)

@@ -11,12 +11,14 @@ from ai.factories.course_generation_factory import (
 from core.dto import SubtopicProgressUpdate
 from core.enums import Difficulty
 from core.exceptions import (
+    CoursePublicAccessRestrictedError,
     CourseNotFoundError,
     ForbiddenError,
     InvalidCourseStructureError,
     InvalidLLMResponseError,
 )
 from models.progress import CourseProgressStatusEnum
+from models.user import RoleEnum
 from repositories.course import CourseRepository
 from repositories.course_progress import CourseProgressRepository
 from repositories.subtopic import SubtopicRepository
@@ -27,6 +29,7 @@ from schemas.course import (
     CourseEnrollmentResponseSchema,
     CourseHistoryTestItemSchema,
     CourseListItemSchema,
+    CourseMembershipSchema,
     CourseProgressItemSchema,
     CourseProgressResponseSchema,
     PaginatedCourseDetailSchema,
@@ -292,6 +295,28 @@ class CourseService:
             enrolled=enrolled,
         )
 
+    async def get_course_membership(
+        self,
+        user_id: int,
+        course_id: int,
+    ) -> CourseMembershipSchema:
+        course = await self.course_repository.get_course_by_id(
+            course_id=course_id,
+        )
+        if course is None:
+            raise CourseNotFoundError()
+
+        link = await self.course_repository.find_user_course_link(
+            user_id=user_id,
+            course_id=course_id,
+        )
+        return CourseMembershipSchema(
+            course_id=course_id,
+            user_id=user_id,
+            enrolled=link is not None,
+            owned=course.creator_id == user_id,
+        )
+
     async def set_course_visibility(
         self,
         user_id: int,
@@ -304,6 +329,9 @@ class CourseService:
         )
         if course is None:
             raise CourseNotFoundError()
+
+        if is_public and not course.is_public_allowed:
+            raise CoursePublicAccessRestrictedError()
 
         course = await self.course_repository.set_visibility(
             course=course,
@@ -323,27 +351,41 @@ class CourseService:
     async def get_course_detail(
         self,
         user_id: int,
+        user_role: RoleEnum,
         course_id: int,
         limit: int,
         offset: int,
     ) -> PaginatedCourseDetailSchema:
-        course = await self.course_repository.find_by_id_and_user(
-            course_id=course_id,
-            user_id=user_id,
-        )
+        if user_role == RoleEnum.ADMIN:
+            course = await self.course_repository.get_course_by_id(
+                course_id=course_id,
+            )
+        else:
+            course = await self.course_repository.find_by_id_and_user(
+                course_id=course_id,
+                user_id=user_id,
+            )
         if course is None:
             raise CourseNotFoundError()
 
-        rows = await self.test_progress_repository.get_course_history(
-            user_id=user_id,
-            course_id=course_id,
-            limit=limit,
-            offset=offset,
-        )
-        total = await self.test_progress_repository.count_course_history(
+        link = await self.course_repository.find_user_course_link(
             user_id=user_id,
             course_id=course_id,
         )
+        if link is None:
+            rows = []
+            total = 0
+        else:
+            rows = await self.test_progress_repository.get_course_history(
+                user_id=user_id,
+                course_id=course_id,
+                limit=limit,
+                offset=offset,
+            )
+            total = await self.test_progress_repository.count_course_history(
+                user_id=user_id,
+                course_id=course_id,
+            )
 
         tests: list[CourseHistoryTestItemSchema] = []
         for test, progress in rows:

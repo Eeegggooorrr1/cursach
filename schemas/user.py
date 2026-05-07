@@ -36,4 +36,5 @@ class UserProfileSchema(OrmSchema):
     email: EmailStr
     username: str
     profile_description: str | None
+    is_blocked: bool
     role: str

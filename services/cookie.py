@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from fastapi import Response
 
+from core.auth.tokens import ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE
+
 
 @dataclass
 class CookieManager:
@@ -9,7 +11,7 @@ class CookieManager:
     @staticmethod
     def _set_access_token(response: Response, access_token: str):
         response.set_cookie(
-            key="user_access_token",
+            key=ACCESS_TOKEN_COOKIE,
             value=access_token,
             httponly=False,
             secure=False,
@@ -19,7 +21,7 @@ class CookieManager:
     @staticmethod
     def _set_refresh_token(response: Response, refresh_token: str):
         response.set_cookie(
-            key="user_refresh_token",
+            key=REFRESH_TOKEN_COOKIE,
             value=refresh_token,
             httponly=True,
             secure=False,

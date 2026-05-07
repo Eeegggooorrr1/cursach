@@ -2,6 +2,7 @@ from enum import Enum
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     ForeignKey,
     Integer,
     String,
@@ -37,6 +38,11 @@ class User(Base):
     profile_description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
+    )
+    is_blocked: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
     )
 
     role_id: Mapped[int] = mapped_column(

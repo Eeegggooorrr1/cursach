@@ -3,7 +3,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Response
 from fastapi.security import HTTPBearer
 
-from core.di.providers.auth import RefreshToken
+from core.auth import RefreshToken
 from schemas.auth import UserLoginSchema, UserRegisterSchema
 from services.auth import AuthService
 from services.cookie import CookieManager

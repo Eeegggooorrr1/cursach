@@ -76,6 +76,13 @@ class CourseEnrollmentResponseSchema(StrictSchema):
     enrolled: bool
 
 
+class CourseMembershipSchema(StrictSchema):
+    course_id: int
+    user_id: int
+    enrolled: bool
+    owned: bool
+
+
 class SubtopicReadSchema(OrmSchema):
     id: int
     name: str
@@ -94,6 +101,7 @@ class CourseReadSchema(OrmSchema):
     comment: str | None
     prompt: str | None
     is_public: bool
+    is_public_allowed: bool
     created_at: datetime
     topics: list[TopicReadSchema]
 
@@ -110,6 +118,7 @@ class CourseListItemSchema(OrmSchema):
     title: str
     comment: str | None
     is_public: bool
+    is_public_allowed: bool
     created_at: datetime
 
 
@@ -124,6 +133,7 @@ class PublicCourseDetailSchema(OrmSchema):
     title: str
     comment: str | None
     is_public: bool
+    is_public_allowed: bool
     created_at: datetime
     topics: list[TopicReadSchema]
 
@@ -135,6 +145,7 @@ class CourseDetailSchema(OrmSchema):
     comment: str | None
     prompt: str | None
     is_public: bool
+    is_public_allowed: bool
     created_at: datetime
 
 

@@ -19,6 +19,7 @@ class UserService:
             email=user.email,
             username=user.username,
             profile_description=user.profile_description,
+            is_blocked=user.is_blocked,
             role=user.role.name,
         )
 
@@ -39,5 +40,6 @@ class UserService:
             email=user.email,
             username=user.username,
             profile_description=user.profile_description,
+            is_blocked=user.is_blocked,
             role=user.role.name,
         )

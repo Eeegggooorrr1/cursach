@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from pydantic import EmailStr
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -64,3 +64,31 @@ class UserRepository:
         await self.session.delete(user)
         await self.session.flush()
         return True
+
+    async def set_blocked(self, user: User, is_blocked: bool) -> User:
+        user.is_blocked = is_blocked
+        await self.session.flush()
+        return user
+
+    async def find_blocked_users_paginated(
+        self,
+        limit: int,
+        offset: int,
+    ) -> list[User]:
+        stmt = (
+            select(User)
+            .where(User.is_blocked.is_(True))
+            .options(selectinload(User.role))
+            .order_by(User.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_blocked_users(self) -> int:
+        stmt = select(func.count(User.id)).where(
+            User.is_blocked.is_(True),
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
