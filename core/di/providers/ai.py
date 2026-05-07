@@ -1,5 +1,5 @@
 from dishka import provide, Scope, Provider
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment
 from openai import AsyncOpenAI
 
 from ai.contracts import LLMClient
@@ -9,6 +9,7 @@ from ai.factories.course_generation_factory import (
 )
 from ai.factories.test_generation_factory import \
     TestGenerationPromptFactory
+from core.ai import create_deepseek_openai_client, create_prompt_environment
 from core.config import Settings
 
 
@@ -16,12 +17,7 @@ class AIProvider(Provider):
 
     @provide(scope=Scope.APP)
     def jinja_env(self) -> Environment:
-        return Environment(
-            loader=PackageLoader("ai"),
-            autoescape=False,
-            trim_blocks=True,
-            lstrip_blocks=True,
-        )
+        return create_prompt_environment()
 
     @provide(scope=Scope.REQUEST)
     def test_prompt_factory(
@@ -37,10 +33,7 @@ class AIProvider(Provider):
 
     @provide(scope=Scope.APP)
     def deepseek_openai_client(self, settings: Settings) -> AsyncOpenAI:
-        return AsyncOpenAI(
-            api_key=settings.DEEPSEEK_API_KEY,
-            base_url=settings.DEEPSEEK_URL,
-        )
+        return create_deepseek_openai_client(settings)
 
     @provide(scope=Scope.REQUEST)
     def llm_client(
