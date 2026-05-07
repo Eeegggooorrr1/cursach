@@ -19,6 +19,7 @@ from repositories.subtopic_progress import SubtopicProgressRepository
 from repositories.test import TestRepository
 from repositories.test_progress import TestProgressRepository
 from repositories.user import UserRepository
+from services.admin import AdminService
 from services.auth import AuthService
 from services.cookie import CookieManager
 from services.course import CourseService, CourseGenerationPolicy
@@ -63,6 +64,19 @@ class ServicesProvider(Provider):
         user_repository: UserRepository,
     ) -> UserService:
         return UserService(user_repository=user_repository)
+
+    @provide(scope=Scope.REQUEST)
+    def admin_service(
+        self,
+        user_repository: UserRepository,
+        course_repository: CourseRepository,
+        refresh_repository: RefreshTokenRepository,
+    ) -> AdminService:
+        return AdminService(
+            user_repository=user_repository,
+            course_repository=course_repository,
+            refresh_repository=refresh_repository,
+        )
 
     @provide(scope=Scope.REQUEST)
     def seed_service(
