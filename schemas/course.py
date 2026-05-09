@@ -127,6 +127,26 @@ class PaginatedCourseListSchema(StrictSchema):
     meta: PaginationSchema
 
 
+class DashboardLastTestSchema(StrictSchema):
+    course_id: int
+    test_id: int
+    course_title: str
+    test_title: str
+    questions_count: int
+    incorrect_answers_count: int
+    correct_percentage: float
+    started_at: datetime
+    finished_at: datetime | None
+
+
+class CourseDashboardSummarySchema(StrictSchema):
+    active_courses: int
+    tests_last_week: int
+    shared_courses: int
+    public_courses: int
+    last_test: DashboardLastTestSchema | None
+
+
 class PublicCourseDetailSchema(OrmSchema):
     id: int
     creator_id: int

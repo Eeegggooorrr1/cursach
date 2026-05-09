@@ -111,6 +111,30 @@ class CourseRepository:
         result = await self.session.execute(stmt)
         return int(result.scalar_one())
 
+    async def count_shared_user_courses(self, user_id: int) -> int:
+        stmt = (
+            select(func.count(Course.id))
+            .join(UserCourse, UserCourse.course_id == Course.id)
+            .where(
+                UserCourse.user_id == user_id,
+                Course.creator_id != user_id,
+            )
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def count_public_user_courses(self, user_id: int) -> int:
+        stmt = (
+            select(func.count(Course.id))
+            .join(UserCourse, UserCourse.course_id == Course.id)
+            .where(
+                UserCourse.user_id == user_id,
+                Course.is_public.is_(True),
+            )
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
+
     async def find_public_courses_paginated(
         self,
         limit: int,

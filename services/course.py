@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 
 from pydantic import ValidationError
 
@@ -26,10 +27,12 @@ from repositories.subtopic_progress import SubtopicProgressRepository
 from repositories.test_progress import TestProgressRepository
 from schemas.course import (
     CourseDetailSchema,
+    CourseDashboardSummarySchema,
     CourseEnrollmentResponseSchema,
     CourseHistoryTestItemSchema,
     CourseListItemSchema,
     CourseMembershipSchema,
+    DashboardLastTestSchema,
     CourseProgressItemSchema,
     CourseProgressResponseSchema,
     PaginatedCourseDetailSchema,
@@ -179,6 +182,57 @@ class CourseService:
             total=total,
             limit=limit,
             offset=offset,
+        )
+
+    async def get_dashboard_summary(
+        self,
+        user_id: int,
+    ) -> CourseDashboardSummarySchema:
+        one_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        active_courses = await self.course_repository.count_user_courses(
+            user_id=user_id
+        )
+        shared_courses = (
+            await self.course_repository.count_shared_user_courses(
+                user_id=user_id
+            )
+        )
+        public_courses = (
+            await self.course_repository.count_public_user_courses(
+                user_id=user_id
+            )
+        )
+        tests_last_week = await self.test_progress_repository.count_started_since(
+            user_id=user_id,
+            since=one_week_ago,
+        )
+        last_test_row = await self.test_progress_repository.get_last_finished_summary(
+            user_id=user_id
+        )
+
+        last_test = None
+        if last_test_row is not None:
+            last_test = DashboardLastTestSchema(
+                course_id=last_test_row.course_id,
+                test_id=last_test_row.test_id,
+                course_title=last_test_row.course_title,
+                test_title=last_test_row.test_title,
+                questions_count=last_test_row.questions_count,
+                incorrect_answers_count=(
+                    last_test_row.questions_count
+                    - last_test_row.correct_answers_count
+                ),
+                correct_percentage=last_test_row.correct_percentage,
+                started_at=last_test_row.started_at,
+                finished_at=last_test_row.finished_at,
+            )
+
+        return CourseDashboardSummarySchema(
+            active_courses=active_courses,
+            tests_last_week=tests_last_week,
+            shared_courses=shared_courses,
+            public_courses=public_courses,
+            last_test=last_test,
         )
 
     async def get_public_courses(
@@ -389,15 +443,20 @@ class CourseService:
 
         tests: list[CourseHistoryTestItemSchema] = []
         for test, progress in rows:
+            is_finished = progress.status == "finished"
             tests.append(
                 CourseHistoryTestItemSchema(
                     id=test.id,
                     position=test.position,
                     title=test.title,
                     status=progress.status,
-                    correct_percentage=progress.correct_percentage,
-                    error_percentage=round(
-                        100.0 - progress.correct_percentage, 2
+                    correct_percentage=(
+                        progress.correct_percentage if is_finished else 0.0
+                    ),
+                    error_percentage=(
+                        round(100.0 - progress.correct_percentage, 2)
+                        if is_finished
+                        else 0.0
                     ),
                     started_at=progress.started_at,
                     finished_at=progress.finished_at,

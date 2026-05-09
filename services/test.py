@@ -279,6 +279,21 @@ class TestService:
         )
         return full_test
 
+    async def get_test(
+        self,
+        course_id: int,
+        test_id: int,
+        user_id: int,
+    ):
+        test = await self.test_repository.get_test_with_details(test_id=test_id)
+        if (
+            test is None
+            or test.course_id != course_id
+            or test.user_id != user_id
+        ):
+            raise TestNotFoundError()
+        return test
+
     async def get_review(
         self,
         user_id: int,

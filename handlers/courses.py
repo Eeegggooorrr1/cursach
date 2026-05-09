@@ -9,6 +9,7 @@ from models.user import RoleEnum
 from schemas.auth import UserFromToken
 from schemas.course import (
     CourseCreateSchema,
+    CourseDashboardSummarySchema,
     CourseReadSchema,
     PaginatedCourseListSchema,
     PaginatedCourseDetailSchema,
@@ -67,6 +68,32 @@ async def create_test(
     ],
 ) -> TestReadSchema:
     return await test_service.create_test(course_id=course_id, user_id=user.id)
+
+
+@router.get("/summary")
+async def get_dashboard_summary(
+    user: Annotated[
+        UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
+    ],
+    course_service: FromDishka[CourseService],
+) -> CourseDashboardSummarySchema:
+    return await course_service.get_dashboard_summary(user_id=user.id)
+
+
+@router.get("/{course_id}/tests/{test_id}")
+async def get_test(
+    course_id: Annotated[int, Path(gt=0)],
+    test_id: Annotated[int, Path(gt=0)],
+    test_service: FromDishka[TestService],
+    user: Annotated[
+        UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
+    ],
+) -> TestReadSchema:
+    return await test_service.get_test(
+        course_id=course_id,
+        test_id=test_id,
+        user_id=user.id,
+    )
 
 
 @router.post(
