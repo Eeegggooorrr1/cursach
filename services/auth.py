@@ -60,3 +60,6 @@ class AuthService:
         )
 
         return access_token, refresh_token
+
+    async def logout(self, user_id: int) -> None:
+        await self.security_service.logout(user_id)

@@ -33,3 +33,18 @@ class CookieManager:
     ):
         self._set_access_token(response, access_token)
         self._set_refresh_token(response, refresh_token)
+
+    @staticmethod
+    def clear_auth_cookies(response: Response) -> None:
+        response.delete_cookie(
+            key=ACCESS_TOKEN_COOKIE,
+            path="/",
+            samesite="lax",
+            secure=False,
+        )
+        response.delete_cookie(
+            key=REFRESH_TOKEN_COOKIE,
+            path="/",
+            samesite="lax",
+            secure=False,
+        )

@@ -1,9 +1,11 @@
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 from fastapi.security import HTTPBearer
 
-from core.auth import RefreshToken
+from core.auth import RefreshToken, RequireRoles
+from models.user import RoleEnum
+from schemas.auth import UserFromToken
 from schemas.auth import UserLoginSchema, UserRegisterSchema
 from services.auth import AuthService
 from services.cookie import CookieManager
@@ -69,4 +71,18 @@ async def refresh_tokens(
     )
     cookie_manager.set_auth_cookies(response, access_token, new_refresh_token)
 
+    return {"msg": "ok"}
+
+
+@router.post("/logout")
+async def logout(
+    response: Response,
+    auth_service: FromDishka[AuthService],
+    cookie_manager: FromDishka[CookieManager],
+    user: UserFromToken = Depends(
+        RequireRoles(RoleEnum.USER, RoleEnum.ADMIN)
+    ),
+) -> dict[str, str]:
+    await auth_service.logout(user.id)
+    cookie_manager.clear_auth_cookies(response)
     return {"msg": "ok"}

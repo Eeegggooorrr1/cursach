@@ -165,3 +165,6 @@ class SecurityService:
         )
 
         return access_token, new_refresh_token
+
+    async def logout(self, user_id: int) -> None:
+        await self.refresh_repository.revoke_all_for_user(user_id)
