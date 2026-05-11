@@ -23,7 +23,7 @@ router = APIRouter(
 )
 
 
-@router.get("/blocked-users")
+@router.get("/blocked-users", description="Получить заблокированных пользователей")
 async def get_blocked_users(
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
     admin_service: FromDishka[AdminService],
@@ -36,7 +36,7 @@ async def get_blocked_users(
     )
 
 
-@router.patch("/users/{user_id}/block")
+@router.patch("/users/{user_id}/block", description="Заблокировать пользователя")
 async def block_user(
     user_id: int,
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
@@ -48,7 +48,7 @@ async def block_user(
     )
 
 
-@router.patch("/users/{user_id}/unblock")
+@router.patch("/users/{user_id}/unblock", description="Разблокировать пользователя")
 async def unblock_user(
     user_id: int,
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
@@ -57,7 +57,10 @@ async def unblock_user(
     return await admin_service.unblock_user(user_id=user_id)
 
 
-@router.get("/restricted-courses")
+@router.get(
+    "/restricted-courses",
+    description="Получить курсы убранные из публичного доступа",
+)
 async def get_restricted_courses(
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
     admin_service: FromDishka[AdminService],
@@ -70,7 +73,10 @@ async def get_restricted_courses(
     )
 
 
-@router.patch("/courses/{course_id}/restrict-public")
+@router.patch(
+    "/courses/{course_id}/restrict-public",
+    description="Убрать курс из публичного доступа без возможности возврата",
+)
 async def restrict_course_public_access(
     course_id: int,
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
@@ -82,7 +88,10 @@ async def restrict_course_public_access(
     )
 
 
-@router.patch("/courses/{course_id}/restore-public")
+@router.patch(
+    "/courses/{course_id}/restore-public",
+    description="Вернуть курсу возможность публиковаться",
+)
 async def restore_course_public_access(
     course_id: int,
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],

@@ -16,9 +16,7 @@ router = APIRouter(prefix="/auth", tags=["auth"], route_class=DishkaRoute)
 security = HTTPBearer(auto_error=True)
 
 
-@router.post(
-    "/login",
-)
+@router.post("/login", description="Войти и поставить access/refresh в куки")
 async def login(
     response: Response,
     user: UserLoginSchema,
@@ -37,6 +35,7 @@ async def login(
 
 @router.post(
     "/register",
+    description="Зарегистрировать новый акк и войти",
 )
 async def register(
     response: Response,
@@ -59,7 +58,7 @@ async def register(
 
 @router.post(
     "/refresh",
-    description="если access протухший/отсутствует, то идем сюда",
+    description="Ротировать refresh и обновить access",
 )
 @limiter.limit(rate_limit_settings.RATE_LIMIT_REFRESH)
 async def refresh_tokens(
@@ -77,7 +76,7 @@ async def refresh_tokens(
     return {"msg": "ok"}
 
 
-@router.post("/logout")
+@router.post("/logout", description="Выйти и ревокнуть refresh")
 async def logout(
     response: Response,
     auth_service: FromDishka[AuthService],

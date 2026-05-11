@@ -15,10 +15,7 @@ router = APIRouter(
 )
 
 
-@router.patch(
-    "/",
-    description="Обновить описание своего профиля",
-)
+@router.patch("/", description="Обновить описание профиля")
 async def update_user(
     user_update_data: UserUpdateSchema,
     user_data: Annotated[
@@ -32,7 +29,7 @@ async def update_user(
     )
 
 
-@router.get("/", description="Получить свой профиль")
+@router.get("/", description="Получить данные профиля")
 async def get_me(
     user_data: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))

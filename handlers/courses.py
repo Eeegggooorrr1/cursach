@@ -29,17 +29,15 @@ from schemas.test import (
     TestSubmitSchema,
     TestSubmitResponseSchema,
 )
-from services.course import CourseService
-from services.course_search import CourseSearchService
-from services.submission import TestSubmissionService
-from services.test import TestService
+from services.course import CourseSearchService, CourseService
+from services.test import TestService, TestSubmissionService
 
 router = APIRouter(
     prefix="/courses", tags=["courses"], route_class=DishkaRoute
 )
 
 
-@router.post("/")
+@router.post("/", description="Создать новый курс и сгенерить ему структуру")
 @limiter.limit(rate_limit_settings.RATE_LIMIT_GENERATION)
 async def create_course(
     request: Request,
@@ -62,7 +60,10 @@ async def create_course(
     return created_course
 
 
-@router.post("/{course_id}/create-test")
+@router.post(
+    "/{course_id}/create-test",
+    description="Сгенерить очередной тест к курсу",
+)
 @limiter.limit(rate_limit_settings.RATE_LIMIT_GENERATION)
 async def create_test(
     request: Request,
@@ -75,7 +76,7 @@ async def create_test(
     return await test_service.create_test(course_id=course_id, user_id=user.id)
 
 
-@router.get("/summary")
+@router.get("/summary", description="Получить дашборд и инфу по последнему пройденному тесту")
 async def get_dashboard_summary(
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
@@ -85,7 +86,10 @@ async def get_dashboard_summary(
     return await course_service.get_dashboard_summary(user_id=user.id)
 
 
-@router.get("/{course_id}/tests/{test_id}")
+@router.get(
+    "/{course_id}/tests/{test_id}",
+    description="Получить тест на прохождение",
+)
 async def get_test(
     course_id: Annotated[int, Path(gt=0)],
     test_id: Annotated[int, Path(gt=0)],
@@ -103,6 +107,7 @@ async def get_test(
 
 @router.post(
     "/{course_id}/{test_id}/submit",
+    description="Оправить ответы на проверку",
 )
 async def submit_test(
     course_id: int,
@@ -121,7 +126,7 @@ async def submit_test(
     )
 
 
-@router.get("/")
+@router.get("/", description="Получить свои курсы")
 async def get_my_courses(
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
@@ -137,7 +142,10 @@ async def get_my_courses(
     )
 
 
-@router.get("/public")
+@router.get(
+    "/public",
+    description="Получить публичные курсы с фильтрацией",
+)
 async def get_public_courses(
     course_search_service: FromDishka[CourseSearchService],
     limit: int = Query(default=20, ge=1, le=100),
@@ -155,7 +163,7 @@ async def get_public_courses(
     )
 
 
-@router.get("/public/{course_id}")
+@router.get("/public/{course_id}", description="Получить детали публичного курса")
 async def get_public_course_detail(
     course_id: int,
     course_service: FromDishka[CourseService],
@@ -163,7 +171,10 @@ async def get_public_course_detail(
     return await course_service.get_public_course_detail(course_id=course_id)
 
 
-@router.post("/{course_id}/enroll")
+@router.post(
+    "/{course_id}/enroll",
+    description="Добавить себе публичный курс",
+)
 async def enroll_public_course(
     course_id: int,
     payload: CourseEnrollSchema,
@@ -179,7 +190,10 @@ async def enroll_public_course(
     )
 
 
-@router.get("/{course_id}/membership")
+@router.get(
+    "/{course_id}/membership",
+    description="Проверить есть ли у пользователя курс",
+)
 async def get_course_membership(
     course_id: int,
     user: Annotated[
@@ -193,7 +207,10 @@ async def get_course_membership(
     )
 
 
-@router.patch("/{course_id}/visibility")
+@router.patch(
+    "/{course_id}/visibility",
+    description="Изменить публичный статус своего курса",
+)
 async def update_course_visibility(
     course_id: int,
     payload: CourseVisibilityUpdateSchema,
@@ -209,7 +226,11 @@ async def update_course_visibility(
     )
 
 
-@router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{course_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description="Удалить/убрать курс из своего списка",
+)
 async def delete_course(
     course_id: int,
     user: Annotated[
@@ -224,7 +245,7 @@ async def delete_course(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/{course_id}")
+@router.get("/{course_id}", description="Получить детали курса и историю тестов")
 async def get_course_detail(
     course_id: int,
     user: Annotated[
@@ -243,7 +264,7 @@ async def get_course_detail(
     )
 
 
-@router.get("/{course_id}/progress")
+@router.get("/{course_id}/progress", description="Get progress by subtopics")
 async def get_course_progress(
     course_id: int,
     user: Annotated[
@@ -257,7 +278,10 @@ async def get_course_progress(
     )
 
 
-@router.get("/{course_id}/{test_id}/review")
+@router.get(
+    "/{course_id}/{test_id}/review",
+    description="Получить ревью засабмиченного теста",
+)
 async def get_test_review(
     course_id: int,
     test_id: int,
