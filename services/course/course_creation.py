@@ -134,6 +134,12 @@ class CourseCreationService:
         expected_subtopics_count: int,
         generated: GeneratedCourseStructureSchema,
     ) -> None:
+        """
+        После ответа LLM проверяем как json и то, что
+        модель вернула тот же набор тем и
+        ровно то число подтем на каждую тему, которое мы заранее запросили
+        через policy.
+        """
         expected = [
             normalize_text(topic).casefold()
             for topic in expected_topics

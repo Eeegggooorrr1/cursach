@@ -10,6 +10,14 @@ from schemas.test import SubmitAnswerSchema
 
 
 class TestSubmissionPolicy:
+    """
+    Сложность меняется не по одному ответу, а по сочетанию качества
+    текущего результата и накопленной серии успешных прохождений.
+    Повышаем уровень только после достаточного streak и mastery_score,
+    а понижаем его лишь тогда, когда на текущем уровне уже появились
+    ошибки и оценка освоения опустилась ниже порога.
+    """
+
     CORRECT_GAIN = {
         Difficulty.EASY: 0.04,
         Difficulty.MEDIUM: 0.05,
@@ -142,6 +150,7 @@ class TestSubmissionPolicy:
         streak: int,
         had_errors: bool,
     ) -> Difficulty:
+
         if current == Difficulty.EASY:
             if (
                 streak > 0

@@ -45,6 +45,14 @@ class TestQuestionCountPolicy:
             range(len(plan)),
             key=lambda index: (-plan[index]["difficulty"], index),
         )
+
+        """
+        Базово каждая выбранная подтема получает один вопрос. Остаток
+        распределяем по кругу, начиная с более сложных подтем,
+        т.е. тест сильнее фокусируется на
+        участках, где пользователю потенциально нужнее проверка.
+        """
+
         for index in range(extra_questions):
             plan[weighted_indexes[index % len(weighted_indexes)]][
                 "questions_count"

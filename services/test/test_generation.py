@@ -164,6 +164,15 @@ class TestGenerationService:
             generated = GeneratedTestSchema.model_validate_json(
                 raw_answer,
                 context={
+
+                    """
+                    В контекст валидации передаем ограничения запроса:
+                    ожидаемое число вопросов, допустимые подтемы, диапазоны числа
+                    вариантов ответа и недавние вопросы пользователя. Это позволяет
+                    отсеять формально валидный JSON, если он не совпадает с нашими
+                    бизнес-ограничениями.
+                    """
+                    
                     "questions_count": sum(questions_by_subtopic.values()),
                     "single_choice_options_range": (2, 6),
                     "multiple_choice_options_range": (3, 9),

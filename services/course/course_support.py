@@ -55,6 +55,12 @@ class CourseLearningStateService:
         course_id: int,
         initial_difficulty: Difficulty,
     ) -> None:
+        """
+        При создании или добавлении курса инициализируем
+        стартовый прогресс по каждой подтеме,
+        чтоб генерация тестов и пересчет сложности сразу
+        опирались на полные данные.
+        """
         course_progress = (
             await self.course_progress_repository.find_by_course_and_user(
                 course_id=course_id,
