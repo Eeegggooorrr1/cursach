@@ -23,12 +23,28 @@ from repositories.user import UserRepository
 from services.admin import AdminService
 from services.auth import AuthService
 from services.cookie import CookieManager
-from services.course import CourseService, CourseGenerationPolicy
-from services.course_search import CourseSearchService
+from services.course import (
+    CourseCacheInvalidationService,
+    CourseCreationService,
+    CourseDeletionService,
+    CourseDetailService,
+    CourseGenerationPolicy,
+    CourseLearningStateService,
+    CourseListService,
+    CoursePublicService,
+    CourseSearchService,
+    CourseService,
+)
 from services.security import SecurityService
-from services.submission import TestSubmissionPolicy, \
-    TestSubmissionService
-from services.test import TestQuestionCountPolicy, TestService
+from services.test import (
+    TestGenerationService,
+    TestQuestionCountPolicy,
+    TestReadService,
+    TestReviewService,
+    TestService,
+    TestSubmissionPolicy,
+    TestSubmissionService,
+)
 from services.user import UserService
 
 
@@ -92,7 +108,7 @@ class ServicesProvider(Provider):
         return CookieManager()
 
     @provide(scope=Scope.REQUEST)
-    def test_service(
+    def test_generation_service(
         self,
         course_repository: CourseRepository,
         course_progress_repository: CourseProgressRepository,
@@ -100,20 +116,18 @@ class ServicesProvider(Provider):
         test_progress_repository: TestProgressRepository,
         subtopic_repository: SubtopicRepository,
         test_repository: TestRepository,
-        question_attempt_repository: QuestionAttemptRepository,
         llm_client: LLMClient,
         prompt_factory: TestGenerationPromptFactory,
         question_count_policy: TestQuestionCountPolicy,
         cache_service: CacheService,
-    ) -> TestService:
-        return TestService(
+    ) -> TestGenerationService:
+        return TestGenerationService(
             course_repository=course_repository,
             course_progress_repository=course_progress_repository,
             subtopic_progress_repository=subtopic_progress_repository,
             test_progress_repository=test_progress_repository,
             subtopic_repository=subtopic_repository,
             test_repository=test_repository,
-            question_attempt_repository=question_attempt_repository,
             llm_client=llm_client,
             prompt_factory=prompt_factory,
             question_count_policy=question_count_policy,
@@ -121,28 +135,150 @@ class ServicesProvider(Provider):
         )
 
     @provide(scope=Scope.REQUEST)
-    def course_service(
+    def test_read_service(
+        self,
+        test_repository: TestRepository,
+        cache_service: CacheService,
+    ) -> TestReadService:
+        return TestReadService(
+            test_repository=test_repository,
+            cache=cache_service,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def test_review_service(
+        self,
+        test_repository: TestRepository,
+        test_progress_repository: TestProgressRepository,
+        question_attempt_repository: QuestionAttemptRepository,
+        cache_service: CacheService,
+    ) -> TestReviewService:
+        return TestReviewService(
+            test_repository=test_repository,
+            test_progress_repository=test_progress_repository,
+            question_attempt_repository=question_attempt_repository,
+            cache=cache_service,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def test_service(
+        self,
+        generation_service: TestGenerationService,
+        read_service: TestReadService,
+        review_service: TestReviewService,
+    ) -> TestService:
+        return TestService(
+            generation_service=generation_service,
+            read_service=read_service,
+            review_service=review_service,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def course_cache_invalidation_service(
+        self,
+        cache_service: CacheService,
+    ) -> CourseCacheInvalidationService:
+        return CourseCacheInvalidationService(cache=cache_service)
+
+    @provide(scope=Scope.REQUEST)
+    def course_learning_state_service(
+        self,
+        course_progress_repository: CourseProgressRepository,
+        subtopic_repository: SubtopicRepository,
+        subtopic_progress_repository: SubtopicProgressRepository,
+    ) -> CourseLearningStateService:
+        return CourseLearningStateService(
+            course_progress_repository=course_progress_repository,
+            subtopic_repository=subtopic_repository,
+            subtopic_progress_repository=subtopic_progress_repository,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def course_creation_service(
         self,
         course_repository: CourseRepository,
-        course_progress_repository: CourseProgressRepository,
         llm_client: LLMClient,
         course_prompt_factory: CourseGenerationPromptFactory,
         course_policy: CourseGenerationPolicy,
-        test_progress_repository: TestProgressRepository,
-        subtopic_repository: SubtopicRepository,
-        subtopic_progress_repository: SubtopicProgressRepository,
-        cache_service: CacheService,
-    ) -> CourseService:
-        return CourseService(
+        course_learning_state_service: CourseLearningStateService,
+        course_cache_invalidation_service: CourseCacheInvalidationService,
+    ) -> CourseCreationService:
+        return CourseCreationService(
             course_repository=course_repository,
-            course_progress_repository=course_progress_repository,
             llm_client=llm_client,
             prompt_factory=course_prompt_factory,
             course_policy=course_policy,
+            learning_state_service=course_learning_state_service,
+            cache_invalidation_service=course_cache_invalidation_service,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def course_list_service(
+        self,
+        course_repository: CourseRepository,
+        test_progress_repository: TestProgressRepository,
+    ) -> CourseListService:
+        return CourseListService(
+            course_repository=course_repository,
+            test_progress_repository=test_progress_repository,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def course_deletion_service(
+        self,
+        course_repository: CourseRepository,
+        course_cache_invalidation_service: CourseCacheInvalidationService,
+    ) -> CourseDeletionService:
+        return CourseDeletionService(
+            course_repository=course_repository,
+            cache_invalidation_service=course_cache_invalidation_service,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def course_public_service(
+        self,
+        course_repository: CourseRepository,
+        course_learning_state_service: CourseLearningStateService,
+        course_cache_invalidation_service: CourseCacheInvalidationService,
+        cache_service: CacheService,
+    ) -> CoursePublicService:
+        return CoursePublicService(
+            course_repository=course_repository,
+            learning_state_service=course_learning_state_service,
+            cache_invalidation_service=course_cache_invalidation_service,
+            cache=cache_service,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def course_detail_service(
+        self,
+        course_repository: CourseRepository,
+        test_progress_repository: TestProgressRepository,
+        subtopic_repository: SubtopicRepository,
+        subtopic_progress_repository: SubtopicProgressRepository,
+    ) -> CourseDetailService:
+        return CourseDetailService(
+            course_repository=course_repository,
             test_progress_repository=test_progress_repository,
             subtopic_repository=subtopic_repository,
             subtopic_progress_repository=subtopic_progress_repository,
-            cache=cache_service,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def course_service(
+        self,
+        creation_service: CourseCreationService,
+        list_service: CourseListService,
+        deletion_service: CourseDeletionService,
+        public_service: CoursePublicService,
+        detail_service: CourseDetailService,
+    ) -> CourseService:
+        return CourseService(
+            creation_service=creation_service,
+            list_service=list_service,
+            deletion_service=deletion_service,
+            public_service=public_service,
+            detail_service=detail_service,
         )
 
     @provide(scope=Scope.REQUEST)

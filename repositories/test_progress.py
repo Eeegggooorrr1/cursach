@@ -154,6 +154,25 @@ class TestProgressRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def find_last_for_course(
+        self,
+        user_id: int,
+        course_id: int,
+    ) -> TestProgress | None:
+        stmt = (
+            select(TestProgress)
+            .join(Test, Test.id == TestProgress.test_id)
+            .where(
+                TestProgress.user_id == user_id,
+                Test.course_id == course_id,
+                Test.user_id == user_id,
+            )
+            .order_by(Test.position.desc(), TestProgress.started_at.desc())
+            .limit(1)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def count_started_since(
         self,
         user_id: int,

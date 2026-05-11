@@ -4,7 +4,7 @@ from core.enums import Difficulty
 from core.exceptions import InvalidTestSubmissionError
 from schemas.test import SubmitAnswerSchema
 import schemas.test as test_schemas
-import services.submission as submission_service
+import services.test as test_service
 from tests.factories import (
     make_answer_option,
     make_question,
@@ -25,7 +25,7 @@ def test_multiple_choice_partial_answer_is_wrong() -> None:
     )
     test = make_test([question])
 
-    result = submission_service.TestSubmissionPolicy().evaluate(
+    result = test_service.TestSubmissionPolicy().evaluate(
         test=test,
         submitted_answers=[
             SubmitAnswerSchema(question_id=1, selected_option_ids=[10])
@@ -54,7 +54,7 @@ def test_hard_difficulty_does_not_demote_after_all_correct() -> None:
         current_difficulty=Difficulty.HARD,
     )
 
-    result = submission_service.TestSubmissionPolicy().evaluate(
+    result = test_service.TestSubmissionPolicy().evaluate(
         test=test,
         submitted_answers=[
             SubmitAnswerSchema(question_id=1, selected_option_ids=[10])
@@ -88,7 +88,7 @@ def test_single_choice_requires_exactly_one_selected_option() -> None:
     )
 
     with pytest.raises(InvalidTestSubmissionError):
-        submission_service.TestSubmissionService._validate_payload_against_test(
+        test_service.TestSubmissionService._validate_payload_against_test(
             test=test,
             payload=payload,
         )

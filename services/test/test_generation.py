@@ -1,13 +1,12 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any
 
 from pydantic import ValidationError
 
-from ai.schemas import GeneratedTestSchema
 from ai.contracts import LLMClient
 from ai.factories.test_generation_factory import TestGenerationPromptFactory
+from ai.schemas import GeneratedTestSchema
 from core.cache import CacheService
 from core.cache_keys import CacheKeys
 from core.dto import PreparedQuestionData
@@ -15,107 +14,31 @@ from core.exceptions import (
     CourseNotFoundError,
     InvalidGeneratedTestError,
     InvalidLLMResponseError,
+    TestInProgressError,
     TestNotFoundError,
-    TestReviewNotAvailableError,
 )
 from models.progress import CourseProgressStatusEnum, TestProgressStatusEnum
-from models.course import Subtopic
-from models.progress import SubtopicProgress
 from repositories.course import CourseRepository
 from repositories.course_progress import CourseProgressRepository
-from repositories.question_attempt import QuestionAttemptRepository
 from repositories.subtopic import SubtopicRepository
 from repositories.subtopic_progress import SubtopicProgressRepository
 from repositories.test import TestRepository
 from repositories.test_progress import TestProgressRepository
-from schemas.course import (
-    ReviewAttemptSchema,
-    ReviewTestSchema,
-    TestReviewResponseSchema,
-)
 from schemas.test import TestReadSchema
+from services.test.policies import TestQuestionCountPolicy
 
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class TestQuestionCountPolicy:
-    min_questions: int = 10
-    max_questions: int = 24
-
-    def build_subtopic_plan(
-        self,
-        subtopics: list[Subtopic],
-        progress_by_subtopic_id: dict[int, SubtopicProgress],
-        test_no: int,
-    ) -> list[dict[str, Any]]:
-        if not subtopics:
-            return []
-
-        selected_subtopics = self._select_subtopics(
-            subtopics=subtopics,
-            test_no=test_no,
-        )
-        total_questions = min(
-            self.max_questions,
-            max(self.min_questions, len(selected_subtopics)),
-        )
-        extra_questions = total_questions - len(selected_subtopics)
-
-        plan = [
-            {
-                "name": subtopic.name,
-                "difficulty": self._difficulty_for(
-                    subtopic=subtopic,
-                    progress_by_subtopic_id=progress_by_subtopic_id,
-                ),
-                "questions_count": 1,
-            }
-            for subtopic in selected_subtopics
-        ]
-
-        weighted_indexes = sorted(
-            range(len(plan)),
-            key=lambda index: (-plan[index]["difficulty"], index),
-        )
-        for index in range(extra_questions):
-            plan[weighted_indexes[index % len(weighted_indexes)]][
-                "questions_count"
-            ] += 1
-
-        return plan
-
-    def _select_subtopics(
-        self,
-        subtopics: list[Subtopic],
-        test_no: int,
-    ) -> list[Subtopic]:
-        if len(subtopics) <= self.max_questions:
-            return subtopics
-
-        start = ((test_no - 1) * self.max_questions) % len(subtopics)
-        rotated = subtopics[start:] + subtopics[:start]
-        return rotated[: self.max_questions]
-
-    @staticmethod
-    def _difficulty_for(
-        subtopic: Subtopic,
-        progress_by_subtopic_id: dict[int, SubtopicProgress],
-    ) -> int:
-        progress = progress_by_subtopic_id.get(subtopic.id)
-        return progress.current_difficulty if progress is not None else 0
-
-
 @dataclass
-class TestService:
+class TestGenerationService:
     course_repository: CourseRepository
     course_progress_repository: CourseProgressRepository
     subtopic_progress_repository: SubtopicProgressRepository
     test_progress_repository: TestProgressRepository
     subtopic_repository: SubtopicRepository
     test_repository: TestRepository
-    question_attempt_repository: QuestionAttemptRepository
     llm_client: LLMClient
     prompt_factory: TestGenerationPromptFactory
     question_count_policy: TestQuestionCountPolicy
@@ -141,6 +64,18 @@ class TestService:
                 user_id=user_id,
                 status=CourseProgressStatusEnum.ACTIVE,
             )
+
+        last_test_progress = (
+            await self.test_progress_repository.find_last_for_course(
+                user_id=user_id,
+                course_id=course_id,
+            )
+        )
+        if (
+            last_test_progress is not None
+            and last_test_progress.status == TestProgressStatusEnum.IN_PROGRESS
+        ):
+            raise TestInProgressError()
 
         subtopics = await self.subtopic_repository.find_by_course_id(
             course_id=course_id
@@ -292,95 +227,6 @@ class TestService:
         )
         return response
 
-    async def get_test(
-        self,
-        course_id: int,
-        test_id: int,
-        user_id: int,
-    ) -> TestReadSchema:
-        cached = await self.cache.get_schema(
-            CacheKeys.test(user_id, course_id, test_id),
-            TestReadSchema,
-        )
-        if cached is not None:
-            return cached
-
-        test = await self.test_repository.get_test_with_details(test_id=test_id)
-        if (
-            test is None
-            or test.course_id != course_id
-            or test.user_id != user_id
-        ):
-            raise TestNotFoundError()
-
-        response = TestReadSchema.model_validate(
-            test,
-            from_attributes=True,
-        )
-        await self.cache.set_schema(
-            CacheKeys.test(user_id, course_id, test_id),
-            response,
-            ttl_seconds=self.cache.settings.TEST_CACHE_TTL_SECONDS,
-        )
-        return response
-
-    async def get_review(
-        self,
-        user_id: int,
-        course_id: int,
-        test_id: int,
-    ) -> TestReviewResponseSchema:
-        cached = await self.cache.get_schema(
-            CacheKeys.test_review(user_id, course_id, test_id),
-            TestReviewResponseSchema,
-        )
-        if cached is not None:
-            return cached
-
-        test = await self.test_repository.get_test_with_details(
-            test_id=test_id
-        )
-        if (
-            test is None
-            or test.course_id != course_id
-            or test.user_id != user_id
-        ):
-            raise TestNotFoundError()
-
-        progress = await self.test_progress_repository.find_by_user_and_test(
-            user_id=user_id,
-            test_id=test_id,
-        )
-        if (
-            progress is None
-            or progress.status != TestProgressStatusEnum.FINISHED
-        ):
-            raise TestReviewNotAvailableError()
-
-        attempts = (
-            await self.question_attempt_repository.find_by_test_progress_id(
-                test_progress_id=progress.id,
-            )
-        )
-
-        response = TestReviewResponseSchema(
-            test=ReviewTestSchema.from_orm_test(test),
-            attempts=[
-                ReviewAttemptSchema(
-                    question_id=attempt.question_id,
-                    selected_option_ids=self._selected_option_ids(attempt),
-                    is_correct=attempt.is_correct,
-                )
-                for attempt in attempts
-            ],
-        )
-        await self.cache.set_schema(
-            CacheKeys.test_review(user_id, course_id, test_id),
-            response,
-            ttl_seconds=self.cache.settings.TEST_REVIEW_CACHE_TTL_SECONDS,
-        )
-        return response
-
     @staticmethod
     def _prepare_generated_test(
         generated: GeneratedTestSchema,
@@ -389,7 +235,9 @@ class TestService:
         prepared_questions: list[PreparedQuestionData] = []
 
         for question in generated.questions:
-            subtopic_key = TestService._normalize_text(question.subtopic)
+            subtopic_key = TestGenerationService._normalize_text(
+                question.subtopic
+            )
             prepared_questions.append(
                 PreparedQuestionData(
                     subtopic_id=subtopic_name_to_id[subtopic_key],
@@ -403,12 +251,6 @@ class TestService:
             )
 
         return prepared_questions
-
-    @staticmethod
-    def _selected_option_ids(attempt) -> list[int]:
-        return sorted(
-            item.answer_option_id for item in attempt.selected_options
-        )
 
     @staticmethod
     def _normalize_text(text: str) -> str:

@@ -145,6 +145,11 @@ class TestAlreadySubmittedError(ConflictError):
     message = "Test already submitted"
 
 
+class TestInProgressError(ConflictError):
+    code = "test_in_progress"
+    message = "Finish the current test before generating a new one"
+
+
 class InvalidTestSubmissionError(BadRequestError):
     code = "invalid_test_submission"
     message = "Invalid test submission"
