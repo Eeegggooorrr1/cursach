@@ -13,5 +13,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
 
+  redis:
+    image: redis:7.4-alpine
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "no"]
+
 volumes:
   postgres_data:

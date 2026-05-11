@@ -2,9 +2,10 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, Path, Query, Response, status
+from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
 
 from core.auth import RequireRoles
+from core.rate_limit import limiter, settings as rate_limit_settings
 from models.user import RoleEnum
 from schemas.auth import UserFromToken
 from schemas.course import (
@@ -39,7 +40,9 @@ router = APIRouter(
 
 
 @router.post("/")
+@limiter.limit(rate_limit_settings.RATE_LIMIT_GENERATION)
 async def create_course(
+    request: Request,
     course: CourseCreateSchema,
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
@@ -60,7 +63,9 @@ async def create_course(
 
 
 @router.post("/{course_id}/create-test")
+@limiter.limit(rate_limit_settings.RATE_LIMIT_GENERATION)
 async def create_test(
+    request: Request,
     course_id: Annotated[int, Path(gt=0)],
     test_service: FromDishka[TestService],
     user: Annotated[

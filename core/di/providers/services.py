@@ -9,6 +9,7 @@ from ai.factories.course_generation_factory import (
 from ai.factories.test_generation_factory import \
     TestGenerationPromptFactory
 from cli.bootstrap.seed_service import SeedService
+from core.cache import CacheService
 from core.config import Settings
 from repositories.course import CourseRepository
 from repositories.course_progress import CourseProgressRepository
@@ -71,11 +72,13 @@ class ServicesProvider(Provider):
         user_repository: UserRepository,
         course_repository: CourseRepository,
         refresh_repository: RefreshTokenRepository,
+        cache_service: CacheService,
     ) -> AdminService:
         return AdminService(
             user_repository=user_repository,
             course_repository=course_repository,
             refresh_repository=refresh_repository,
+            cache=cache_service,
         )
 
     @provide(scope=Scope.REQUEST)
@@ -101,6 +104,7 @@ class ServicesProvider(Provider):
         llm_client: LLMClient,
         prompt_factory: TestGenerationPromptFactory,
         question_count_policy: TestQuestionCountPolicy,
+        cache_service: CacheService,
     ) -> TestService:
         return TestService(
             course_repository=course_repository,
@@ -113,6 +117,7 @@ class ServicesProvider(Provider):
             llm_client=llm_client,
             prompt_factory=prompt_factory,
             question_count_policy=question_count_policy,
+            cache=cache_service,
         )
 
     @provide(scope=Scope.REQUEST)
@@ -126,6 +131,7 @@ class ServicesProvider(Provider):
         test_progress_repository: TestProgressRepository,
         subtopic_repository: SubtopicRepository,
         subtopic_progress_repository: SubtopicProgressRepository,
+        cache_service: CacheService,
     ) -> CourseService:
         return CourseService(
             course_repository=course_repository,
@@ -136,14 +142,19 @@ class ServicesProvider(Provider):
             test_progress_repository=test_progress_repository,
             subtopic_repository=subtopic_repository,
             subtopic_progress_repository=subtopic_progress_repository,
+            cache=cache_service,
         )
 
     @provide(scope=Scope.REQUEST)
     def course_search_service(
         self,
         course_repository: CourseRepository,
+        cache_service: CacheService,
     ) -> CourseSearchService:
-        return CourseSearchService(course_repository=course_repository)
+        return CourseSearchService(
+            course_repository=course_repository,
+            cache=cache_service,
+        )
 
     @provide(scope=Scope.REQUEST)
     def submission_service(

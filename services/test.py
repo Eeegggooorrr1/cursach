@@ -8,6 +8,8 @@ from pydantic import ValidationError
 from ai.schemas import GeneratedTestSchema
 from ai.contracts import LLMClient
 from ai.factories.test_generation_factory import TestGenerationPromptFactory
+from core.cache import CacheService
+from core.cache_keys import CacheKeys
 from core.dto import PreparedQuestionData
 from core.exceptions import (
     CourseNotFoundError,
@@ -31,6 +33,7 @@ from schemas.course import (
     ReviewTestSchema,
     TestReviewResponseSchema,
 )
+from schemas.test import TestReadSchema
 
 
 logger = logging.getLogger(__name__)
@@ -116,8 +119,9 @@ class TestService:
     llm_client: LLMClient
     prompt_factory: TestGenerationPromptFactory
     question_count_policy: TestQuestionCountPolicy
+    cache: CacheService
 
-    async def create_test(self, course_id: int, user_id: int):
+    async def create_test(self, course_id: int, user_id: int) -> TestReadSchema:
         course = await self.course_repository.find_by_id_and_user(
             course_id=course_id,
             user_id=user_id,
@@ -277,14 +281,30 @@ class TestService:
             len(full_test.questions),
             multiple_choice_count,
         )
-        return full_test
+        response = TestReadSchema.model_validate(
+            full_test,
+            from_attributes=True,
+        )
+        await self.cache.set_schema(
+            CacheKeys.test(user_id, course_id, full_test.id),
+            response,
+            ttl_seconds=self.cache.settings.TEST_CACHE_TTL_SECONDS,
+        )
+        return response
 
     async def get_test(
         self,
         course_id: int,
         test_id: int,
         user_id: int,
-    ):
+    ) -> TestReadSchema:
+        cached = await self.cache.get_schema(
+            CacheKeys.test(user_id, course_id, test_id),
+            TestReadSchema,
+        )
+        if cached is not None:
+            return cached
+
         test = await self.test_repository.get_test_with_details(test_id=test_id)
         if (
             test is None
@@ -292,7 +312,17 @@ class TestService:
             or test.user_id != user_id
         ):
             raise TestNotFoundError()
-        return test
+
+        response = TestReadSchema.model_validate(
+            test,
+            from_attributes=True,
+        )
+        await self.cache.set_schema(
+            CacheKeys.test(user_id, course_id, test_id),
+            response,
+            ttl_seconds=self.cache.settings.TEST_CACHE_TTL_SECONDS,
+        )
+        return response
 
     async def get_review(
         self,
@@ -300,6 +330,13 @@ class TestService:
         course_id: int,
         test_id: int,
     ) -> TestReviewResponseSchema:
+        cached = await self.cache.get_schema(
+            CacheKeys.test_review(user_id, course_id, test_id),
+            TestReviewResponseSchema,
+        )
+        if cached is not None:
+            return cached
+
         test = await self.test_repository.get_test_with_details(
             test_id=test_id
         )
@@ -326,7 +363,7 @@ class TestService:
             )
         )
 
-        return TestReviewResponseSchema(
+        response = TestReviewResponseSchema(
             test=ReviewTestSchema.from_orm_test(test),
             attempts=[
                 ReviewAttemptSchema(
@@ -337,6 +374,12 @@ class TestService:
                 for attempt in attempts
             ],
         )
+        await self.cache.set_schema(
+            CacheKeys.test_review(user_id, course_id, test_id),
+            response,
+            ttl_seconds=self.cache.settings.TEST_REVIEW_CACHE_TTL_SECONDS,
+        )
+        return response
 
     @staticmethod
     def _prepare_generated_test(

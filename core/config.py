@@ -27,6 +27,22 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: str = "INFO"
 
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_DB: int
+    REDIS_PASSWORD: str | None = None
+
+    CACHE_ENABLED: bool = True
+    CACHE_DEFAULT_TTL_SECONDS: int = 600
+    COURSE_CACHE_TTL_SECONDS: int = 600
+    PUBLIC_COURSES_CACHE_TTL_SECONDS: int = 120
+    TEST_CACHE_TTL_SECONDS: int = 86400
+    TEST_REVIEW_CACHE_TTL_SECONDS: int = 86400
+
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_REFRESH: str = "10/minute"
+    RATE_LIMIT_GENERATION: str = "5/hour"
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / ".env"
     )
@@ -38,6 +54,11 @@ class Settings(BaseSettings):
             f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
             f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
+
+    @property
+    def redis_url(self) -> str:
+        auth = f":{self.REDIS_PASSWORD}@" if self.REDIS_PASSWORD else ""
+        return f"redis://{auth}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
     @property
     def auth_data(self) -> dict[str, str]:

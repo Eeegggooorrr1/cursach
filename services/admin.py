@@ -1,6 +1,8 @@
 import logging
 from dataclasses import dataclass
 
+from core.cache import CacheService
+from core.cache_keys import CacheKeys
 from core.exceptions import BadRequestError, CourseNotFoundError, UserNotFoundError
 from models.course import Course
 from models.user import User
@@ -24,6 +26,7 @@ class AdminService:
     user_repository: UserRepository
     course_repository: CourseRepository
     refresh_repository: RefreshTokenRepository
+    cache: CacheService
 
     async def block_user(
         self,
@@ -92,6 +95,7 @@ class AdminService:
             admin_id,
             course_id,
         )
+        await self._invalidate_public_course_cache(course_id)
         return CourseDetailSchema.model_validate(
             course,
             from_attributes=True,
@@ -114,6 +118,7 @@ class AdminService:
             "Course public access restored by admin: course_id=%s",
             course_id,
         )
+        await self._invalidate_public_course_cache(course_id)
         return CourseDetailSchema.model_validate(
             course,
             from_attributes=True,
@@ -158,3 +163,7 @@ class AdminService:
             is_public_allowed=course.is_public_allowed,
             created_at=course.created_at,
         )
+
+    async def _invalidate_public_course_cache(self, course_id: int) -> None:
+        await self.cache.delete(CacheKeys.public_course(course_id))
+        await self.cache.delete_pattern(CacheKeys.public_courses_pattern())

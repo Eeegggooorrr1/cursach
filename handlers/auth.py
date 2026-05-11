@@ -1,9 +1,10 @@
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.security import HTTPBearer
 
 from core.auth import RefreshToken, RequireRoles
+from core.rate_limit import limiter, settings as rate_limit_settings
 from models.user import RoleEnum
 from schemas.auth import UserFromToken
 from schemas.auth import UserLoginSchema, UserRegisterSchema
@@ -60,7 +61,9 @@ async def register(
     "/refresh",
     description="если access протухший/отсутствует, то идем сюда",
 )
+@limiter.limit(rate_limit_settings.RATE_LIMIT_REFRESH)
 async def refresh_tokens(
+    request: Request,
     response: Response,
     refresh_token: FromDishka[RefreshToken],
     security_service: FromDishka[SecurityService],

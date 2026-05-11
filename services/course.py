@@ -9,6 +9,8 @@ from ai.contracts import LLMClient
 from ai.factories.course_generation_factory import (
     CourseGenerationPromptFactory,
 )
+from core.cache import CacheService
+from core.cache_keys import CacheKeys
 from core.dto import SubtopicProgressUpdate
 from core.enums import Difficulty
 from core.exceptions import (
@@ -68,6 +70,7 @@ class CourseService:
     test_progress_repository: TestProgressRepository
     subtopic_repository: SubtopicRepository
     subtopic_progress_repository: SubtopicProgressRepository
+    cache: CacheService
 
     async def create_course(
         self,
@@ -160,6 +163,8 @@ class CourseService:
             full_course.id,
             len(full_course.topics),
         )
+        if full_course.is_public:
+            await self._invalidate_public_courses_cache()
         return full_course
 
     async def get_user_courses(
@@ -280,6 +285,7 @@ class CourseService:
         )
         if course.creator_id == user_id and enrollments_count <= 1:
             await self.course_repository.delete_course(course)
+            await self._invalidate_course_cache(course_id=course_id)
             logger.info(
                 "Course deleted: user_id=%s course_id=%s mode=full",
                 user_id,
@@ -288,6 +294,10 @@ class CourseService:
             return
 
         await self.course_repository.delete_user_course_data(
+            user_id=user_id,
+            course_id=course_id,
+        )
+        await self._invalidate_user_course_cache(
             user_id=user_id,
             course_id=course_id,
         )
@@ -301,16 +311,27 @@ class CourseService:
         self,
         course_id: int,
     ) -> PublicCourseDetailSchema:
+        cache_key = CacheKeys.public_course(course_id)
+        cached = await self.cache.get_schema(cache_key, PublicCourseDetailSchema)
+        if cached is not None:
+            return cached
+
         course = await self.course_repository.find_public_with_details(
             course_id=course_id,
         )
         if course is None:
             raise CourseNotFoundError()
 
-        return PublicCourseDetailSchema.model_validate(
+        response = PublicCourseDetailSchema.model_validate(
             course,
             from_attributes=True,
         )
+        await self.cache.set_schema(
+            cache_key,
+            response,
+            ttl_seconds=self.cache.settings.COURSE_CACHE_TTL_SECONDS,
+        )
+        return response
 
     async def enroll_public_course(
         self,
@@ -397,6 +418,7 @@ class CourseService:
             course_id,
             is_public,
         )
+        await self._invalidate_public_course_cache(course_id=course_id)
         return CourseDetailSchema.model_validate(
             course,
             from_attributes=True,
@@ -611,3 +633,31 @@ class CourseService:
                 raise InvalidCourseStructureError(
                     f"Topic '{topic.name}' must contain exactly {expected_subtopics_count} subtopics",
                 )
+
+    async def _invalidate_course_cache(self, course_id: int) -> None:
+        await self._invalidate_public_course_cache(course_id)
+        await self.cache.delete_pattern(
+            CacheKeys.tests_for_course_pattern(course_id)
+        )
+        await self.cache.delete_pattern(
+            CacheKeys.test_reviews_for_course_pattern(course_id)
+        )
+
+    async def _invalidate_user_course_cache(
+        self,
+        user_id: int,
+        course_id: int,
+    ) -> None:
+        await self.cache.delete_pattern(
+            CacheKeys.tests_for_user_course_pattern(user_id, course_id)
+        )
+        await self.cache.delete_pattern(
+            CacheKeys.test_reviews_for_user_course_pattern(user_id, course_id)
+        )
+
+    async def _invalidate_public_course_cache(self, course_id: int) -> None:
+        await self.cache.delete(CacheKeys.public_course(course_id))
+        await self._invalidate_public_courses_cache()
+
+    async def _invalidate_public_courses_cache(self) -> None:
+        await self.cache.delete_pattern(CacheKeys.public_courses_pattern())

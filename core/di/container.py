@@ -3,6 +3,7 @@ from dishka.integrations.fastapi import FastapiProvider
 
 from core.di.providers.ai import AIProvider
 from core.di.providers.auth import AuthProvider
+from core.di.providers.cache import CacheProvider
 from core.di.providers.config import ConfigProvider
 from core.di.providers.crypt import CryptProvider
 from core.di.providers.db import DBProvider
@@ -14,6 +15,7 @@ def build_container():
     return make_async_container(
         ConfigProvider(),
         DBProvider(),
+        CacheProvider(),
         RepositoriesProvider(),
         ServicesProvider(),
         FastapiProvider(),
