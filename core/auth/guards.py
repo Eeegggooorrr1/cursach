@@ -3,7 +3,6 @@ from dishka.integrations.fastapi import inject
 
 from core.exceptions import ForbiddenError, UserBlockedError
 from models.user import RoleEnum
-from repositories.user import UserRepository
 from schemas.auth import UserFromToken
 
 
@@ -15,10 +14,8 @@ class RequireRoles:
     async def __call__(
         self,
         user: FromDishka[UserFromToken],
-        user_repository: FromDishka[UserRepository],
     ) -> UserFromToken:
-        actual_user = await user_repository.find_user_by_id(user.id)
-        if actual_user is None or actual_user.is_blocked or user.is_blocked:
+        if user.is_blocked:
             raise UserBlockedError()
 
         if user.role not in self.allowed:

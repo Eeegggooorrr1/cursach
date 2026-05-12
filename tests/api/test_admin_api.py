@@ -75,7 +75,7 @@ async def test_admin_restricts_and_restores_course_public_access(
 
 
 @pytest.mark.asyncio
-async def test_admin_blocks_user_and_guard_rejects_existing_token(
+async def test_admin_blocks_user_and_guard_uses_token_blocked_claim(
     api_client,
     db_session,
     test_settings,
@@ -94,7 +94,7 @@ async def test_admin_blocks_user_and_guard_rejects_existing_token(
     await db_session.commit()
 
     admin_cookies = auth_cookies_for_user(admin, test_settings)
-    user_cookies = auth_cookies_for_user(user, test_settings)
+    issued_before_block_cookies = auth_cookies_for_user(user, test_settings)
 
     use_auth_cookies(api_client, admin_cookies)
     blocked = await api_client.patch(
@@ -103,7 +103,13 @@ async def test_admin_blocks_user_and_guard_rejects_existing_token(
     assert blocked.status_code == 200
     assert blocked.json()["is_blocked"] is True
 
-    use_auth_cookies(api_client, user_cookies)
+    use_auth_cookies(api_client, issued_before_block_cookies)
+    allowed_with_existing_access = await api_client.get("/profile/")
+    assert allowed_with_existing_access.status_code == 200
+
+    user.is_blocked = True
+    blocked_claim_cookies = auth_cookies_for_user(user, test_settings)
+    use_auth_cookies(api_client, blocked_claim_cookies)
     denied = await api_client.get("/profile/")
     assert denied.status_code == 403
     assert denied.json()["error"]["code"] == "user_blocked"
@@ -122,6 +128,8 @@ async def test_admin_blocks_user_and_guard_rejects_existing_token(
     assert unblocked.status_code == 200
     assert unblocked.json()["is_blocked"] is False
 
-    use_auth_cookies(api_client, user_cookies)
+    user.is_blocked = False
+    unblocked_claim_cookies = auth_cookies_for_user(user, test_settings)
+    use_auth_cookies(api_client, unblocked_claim_cookies)
     allowed = await api_client.get("/profile/")
     assert allowed.status_code == 200
