@@ -1,0 +1,139 @@
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
+}
+
+.app-main {
+  min-width: 0;
+}
+
+.app-main__scroll {
+  width: min(100% - 48px, 1380px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 28px 0 56px;
+}
+
+.page-stack {
+  display: grid;
+  gap: 20px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.page-header__copy {
+  display: grid;
+  gap: 10px;
+}
+
+.page-header__eyebrow {
+  margin: 0;
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.page-header__title {
+  margin: 0;
+  font-size: clamp(34px, 4vw, 56px);
+  line-height: 0.96;
+  letter-spacing: 0;
+}
+
+.page-header__text {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.page-header__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.screen-surface {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.72));
+  box-shadow: var(--shadow-soft);
+}
+
+.screen-surface--dark {
+  color: white;
+  background:
+    linear-gradient(120deg, rgba(17, 24, 39, 0.96), rgba(17, 24, 39, 0.78)),
+    linear-gradient(135deg, #116149, #174c7d);
+}
+
+.screen-surface__body {
+  padding: 24px;
+}
+
+.screen-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 22px;
+  align-items: flex-end;
+  min-height: 240px;
+}
+
+.screen-hero__copy {
+  display: grid;
+  gap: 14px;
+}
+
+.screen-hero__title {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 72px);
+  line-height: 0.94;
+}
+
+.screen-hero__text {
+  max-width: 680px;
+  margin: 0;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.screen-grid {
+  display: grid;
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-main {
+    padding: 0;
+  }
+
+  .app-main__scroll {
+    width: min(100% - 24px, 1380px);
+    min-height: auto;
+    padding: 18px 0 28px;
+  }
+
+  .page-header,
+  .screen-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header__actions {
+    justify-content: flex-start;
+  }
+}
