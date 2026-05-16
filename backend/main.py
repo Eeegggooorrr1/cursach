@@ -4,7 +4,7 @@ from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from core.config import Settings
+from core.config import create_settings
 from core.di.container import build_container
 from core.exceptions import AppError
 from core.logging import configure_logging
@@ -21,7 +21,14 @@ from handlers.courses import router as courses_router
 from handlers.profile import router as profile_router
 
 
-configure_logging(level="INFO")
+settings = create_settings()
+configure_logging(
+    level=settings.LOG_LEVEL,
+    log_to_file=settings.LOG_TO_FILE,
+    log_file_path=settings.LOG_FILE_PATH,
+    log_file_max_bytes=settings.LOG_FILE_MAX_BYTES,
+    log_file_backup_count=settings.LOG_FILE_BACKUP_COUNT,
+)
 
 
 @asynccontextmanager

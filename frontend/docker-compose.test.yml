@@ -1,0 +1,12 @@
+name: curs-frontend-test
+
+services:
+  frontend-test:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: frontend-test
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    image: curs-frontend-test:latest
+    command: ["npm", "run", "test"]

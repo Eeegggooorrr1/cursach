@@ -1,0 +1,114 @@
+name: curs
+
+services:
+  db:
+    image: postgres:17.7-alpine3.23
+    restart: unless-stopped
+    shm_size: 128mb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PUBLISHED_PORT:?POSTGRES_PUBLISHED_PORT is required}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PUBLISHED_PORT:?REDIS_PUBLISHED_PORT is required}:6379"
+    command: ["redis-server", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-runtime
+    image: curs-backend:latest
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    environment: &backend-env
+      POSTGRES_HOST: ${POSTGRES_HOST:?POSTGRES_HOST is required}
+      POSTGRES_PORT: ${POSTGRES_PORT:?POSTGRES_PORT is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      REDIS_HOST: ${REDIS_HOST:?REDIS_HOST is required}
+      REDIS_PORT: ${REDIS_PORT:?REDIS_PORT is required}
+      REDIS_DB: ${REDIS_DB:?REDIS_DB is required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD?REDIS_PASSWORD is required}
+      CACHE_ENABLED: ${CACHE_ENABLED:?CACHE_ENABLED is required}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:?RATE_LIMIT_ENABLED is required}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      ALGORITHM: ${ALGORITHM:?ALGORITHM is required}
+      SEED_DIR: ${SEED_DIR:?SEED_DIR is required}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?DEEPSEEK_API_KEY is required}
+      DEEPSEEK_URL: ${DEEPSEEK_URL:?DEEPSEEK_URL is required}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:?DEEPSEEK_MODEL is required}
+      LOG_LEVEL: ${LOG_LEVEL:?LOG_LEVEL is required}
+      LOG_TO_FILE: ${LOG_TO_FILE:?LOG_TO_FILE is required}
+      LOG_FILE_PATH: ${LOG_FILE_PATH:?LOG_FILE_PATH is required}
+      LOG_FILE_MAX_BYTES: ${LOG_FILE_MAX_BYTES:?LOG_FILE_MAX_BYTES is required}
+      LOG_FILE_BACKUP_COUNT: ${LOG_FILE_BACKUP_COUNT:?LOG_FILE_BACKUP_COUNT is required}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend-seed:
+    image: curs-backend:latest
+    restart: "no"
+    command: ["python", "-m", "cli", "bootstrap", "load-seed"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      backend-migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
+  backend:
+    image: curs-backend:latest
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+    volumes:
+      - ./logs/backend:/app/logs
+    ports:
+      - "${BACKEND_PORT:?BACKEND_PORT is required}:8000"
+    depends_on:
+      backend-seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend-runtime
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:?VITE_API_BASE_URL is required}
+    image: curs-frontend:latest
+    restart: unless-stopped
+    environment:
+      BACKEND_UPSTREAM: ${BACKEND_UPSTREAM:?BACKEND_UPSTREAM is required}
+    ports:
+      - "${FRONTEND_PORT:?FRONTEND_PORT is required}:80"
+    depends_on:
+      backend:
+        condition: service_started
+
+volumes:
+  postgres_data:

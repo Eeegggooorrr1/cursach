@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     DEEPSEEK_MAX_TOKENS: int = 4096
 
     LOG_LEVEL: str = "INFO"
+    LOG_TO_FILE: bool = False
+    LOG_FILE_PATH: str = "/app/logs/backend.log"
+    LOG_FILE_MAX_BYTES: int = 10485760
+    LOG_FILE_BACKUP_COUNT: int = 5
 
     REDIS_HOST: str
     REDIS_PORT: int
@@ -44,7 +48,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_GENERATION: str = "5/hour"
 
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).parent.parent / ".env"
+        env_file=Path(__file__).parents[2] / ".env"
     )
 
     @property

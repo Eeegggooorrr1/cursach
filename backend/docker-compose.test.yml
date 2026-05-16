@@ -1,14 +1,15 @@
+name: curs-backend-test
+
 services:
   db:
     image: postgres:17.7-alpine3.23
-    container_name: curs-test-db
     shm_size: 128mb
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-curs_test}
+      POSTGRES_USER: ${POSTGRES_USER:-curs_test}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-curs_test}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PUBLISHED_PORT:-5433}:5432"
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
@@ -19,12 +20,40 @@ services:
 
   redis:
     image: redis:7.4-alpine
-    container_name: curs-test-redis
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_PUBLISHED_PORT:-6380}:6379"
     command: ["redis-server", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 20
+
+  backend-test:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: backend-test
+    image: curs-backend-test:latest
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-curs_test}
+      POSTGRES_USER: ${POSTGRES_USER:-curs_test}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-curs_test}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-1}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      CACHE_ENABLED: "false"
+      RATE_LIMIT_ENABLED: "false"
+      SECRET_KEY: ${SECRET_KEY:-test-secret-key}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      SEED_DIR: seed
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-test-api-key}
+      LOG_LEVEL: ${LOG_LEVEL:-WARNING}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

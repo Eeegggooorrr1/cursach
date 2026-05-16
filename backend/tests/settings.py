@@ -7,7 +7,7 @@ from core.config import Settings
 
 class TestSettings(Settings):
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).parent.parent / ".env.test",
+        env_file=Path(__file__).parents[2] / ".env.test",
         extra="ignore",
     )
 

@@ -1,17 +1,18 @@
+name: curs-backend
+
 services:
   db:
     image: postgres:17.7-alpine3.23
-    container_name: curs-db
-    restart: always
+    restart: unless-stopped
     shm_size: 128mb
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PUBLISHED_PORT:-5432}:5432"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-curs}
+      POSTGRES_USER: ${POSTGRES_USER:-curs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-curs}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -20,16 +21,71 @@ services:
 
   redis:
     image: redis:7.4-alpine
-    container_name: curs-redis
-    restart: always
+    restart: unless-stopped
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_PUBLISHED_PORT:-6379}:6379"
     command: ["redis-server", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 20
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: backend-runtime
+    image: curs-backend:latest
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    environment: &backend-env
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-curs}
+      POSTGRES_USER: ${POSTGRES_USER:-curs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-curs}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      CACHE_ENABLED: ${CACHE_ENABLED:-true}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      SEED_DIR: ${SEED_DIR:-seed}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-change-me}
+      DEEPSEEK_URL: ${DEEPSEEK_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    image: curs-backend:latest
+    restart: "no"
+    command: ["python", "-m", "cli", "bootstrap", "load-seed"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
+  api:
+    image: curs-backend:latest
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
