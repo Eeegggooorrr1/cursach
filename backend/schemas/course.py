@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, StringConstraints, model_validator
 
 from core.enums import Difficulty
 from models import Question, Test
 from schemas.base import OrmSchema, StrictSchema
+from schemas.validation import (
+    COURSE_PROMPT_MAX_LENGTH,
+    COURSE_TEXT_MAX_LENGTH,
+    COURSE_TITLE_MAX_LENGTH,
+    COURSE_TOPIC_MAX_LENGTH,
+    COURSE_TOPICS_MAX_COUNT,
+)
 
 
 def _clean_optional_text(value: str | None) -> str | None:
@@ -18,10 +25,15 @@ def _clean_optional_text(value: str | None) -> str | None:
 
 
 class CourseCreateSchema(StrictSchema):
-    title: str
-    comment: str | None = None
-    prompt: str | None = None
-    topics: list[str] = Field(min_length=1)
+    title: Annotated[str, Field(max_length=COURSE_TITLE_MAX_LENGTH)]
+    comment: Annotated[str, Field(max_length=COURSE_TEXT_MAX_LENGTH)] | None = None
+    prompt: Annotated[str, Field(max_length=COURSE_PROMPT_MAX_LENGTH)] | None = None
+    topics: list[
+        Annotated[
+            str,
+            StringConstraints(max_length=COURSE_TOPIC_MAX_LENGTH),
+        ]
+    ] = Field(min_length=1, max_length=COURSE_TOPICS_MAX_COUNT)
     initial_difficulty: Difficulty = Difficulty.EASY
     is_public: bool = False
 

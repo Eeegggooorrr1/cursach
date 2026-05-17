@@ -29,6 +29,7 @@ from schemas.test import (
     TestSubmitSchema,
     TestSubmitResponseSchema,
 )
+from schemas.validation import PUBLIC_COURSE_SEARCH_MAX_LENGTH
 from services.course import CourseSearchService, CourseService
 from services.test import TestService, TestSubmissionService
 
@@ -110,8 +111,8 @@ async def get_test(
     description="Оправить ответы на проверку",
 )
 async def submit_test(
-    course_id: int,
-    test_id: int,
+    course_id: Annotated[int, Path(gt=0)],
+    test_id: Annotated[int, Path(gt=0)],
     payload: TestSubmitSchema,
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
@@ -150,7 +151,11 @@ async def get_public_courses(
     course_search_service: FromDishka[CourseSearchService],
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    q: str | None = Query(default=None, min_length=1, max_length=120),
+    q: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=PUBLIC_COURSE_SEARCH_MAX_LENGTH,
+    ),
     sort: str = Query(
         default="created_desc",
         pattern="^(created_desc|created_asc)$",
@@ -165,7 +170,7 @@ async def get_public_courses(
 
 @router.get("/public/{course_id}", description="Получить детали публичного курса")
 async def get_public_course_detail(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     course_service: FromDishka[CourseService],
 ) -> PublicCourseDetailSchema:
     return await course_service.get_public_course_detail(course_id=course_id)
@@ -176,7 +181,7 @@ async def get_public_course_detail(
     description="Добавить себе публичный курс",
 )
 async def enroll_public_course(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     payload: CourseEnrollSchema,
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
@@ -195,7 +200,7 @@ async def enroll_public_course(
     description="Проверить есть ли у пользователя курс",
 )
 async def get_course_membership(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
     ],
@@ -212,7 +217,7 @@ async def get_course_membership(
     description="Изменить публичный статус своего курса",
 )
 async def update_course_visibility(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     payload: CourseVisibilityUpdateSchema,
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
@@ -232,7 +237,7 @@ async def update_course_visibility(
     description="Удалить/убрать курс из своего списка",
 )
 async def delete_course(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
     ],
@@ -247,7 +252,7 @@ async def delete_course(
 
 @router.get("/{course_id}", description="Получить детали курса и историю тестов")
 async def get_course_detail(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
     ],
@@ -266,7 +271,7 @@ async def get_course_detail(
 
 @router.get("/{course_id}/progress", description="Get progress by subtopics")
 async def get_course_progress(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
     ],
@@ -283,8 +288,8 @@ async def get_course_progress(
     description="Получить ревью засабмиченного теста",
 )
 async def get_test_review(
-    course_id: int,
-    test_id: int,
+    course_id: Annotated[int, Path(gt=0)],
+    test_id: Annotated[int, Path(gt=0)],
     user: Annotated[
         UserFromToken, Depends(RequireRoles(RoleEnum.USER, RoleEnum.ADMIN))
     ],

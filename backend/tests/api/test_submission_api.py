@@ -148,3 +148,35 @@ async def test_review_is_not_available_while_test_is_in_progress_and_test_can_be
     assert reopened.status_code == 200
     assert reopened.json()["id"] == test.id
     assert reopened.json()["questions"][0]["id"] == question.id
+
+
+@pytest.mark.asyncio
+async def test_submit_rejects_non_positive_ids(
+    api_client,
+    db_session,
+    test_settings,
+) -> None:
+    user = await create_user(
+        db_session,
+        email="invalid-submit@example.com",
+        username="invalid-submit",
+    )
+    await db_session.commit()
+
+    use_auth_cookies(
+        api_client,
+        auth_cookies_for_user(user, test_settings),
+    )
+    response = await api_client.post(
+        "/courses/1/1/submit",
+        json={
+            "answers": [
+                {
+                    "question_id": 0,
+                    "selected_option_ids": [1],
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 422

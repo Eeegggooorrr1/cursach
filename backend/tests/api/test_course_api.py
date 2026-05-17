@@ -1,5 +1,11 @@
 import pytest
 
+from schemas.validation import (
+    COURSE_TITLE_MAX_LENGTH,
+    COURSE_TOPIC_MAX_LENGTH,
+    COURSE_TOPICS_MAX_COUNT,
+    PUBLIC_COURSE_SEARCH_MAX_LENGTH,
+)
 from tests.conftest import (
     add_course_structure,
     auth_cookies_for_user,
@@ -322,3 +328,89 @@ async def test_deleting_shared_course_removes_only_requesting_user_data(
     student_detail = await api_client.get(f"/courses/{course.id}")
     assert student_detail.status_code == 200
     assert student_detail.json()["course"]["id"] == course.id
+
+
+@pytest.mark.asyncio
+async def test_create_course_rejects_invalid_text_lengths(api_client) -> None:
+    await api_client.post(
+        "/auth/register",
+        json={
+            "email": "invalid-course@example.com",
+            "password": "secret123",
+            "username": "invalid-course",
+        },
+    )
+
+    too_long_title = await api_client.post(
+        "/courses/",
+        json={
+            "title": "x" * (COURSE_TITLE_MAX_LENGTH + 1),
+            "topics": ["Python"],
+            "initial_difficulty": 1,
+            "is_public": False,
+        },
+    )
+    assert too_long_title.status_code == 422
+
+    too_long_topic = await api_client.post(
+        "/courses/",
+        json={
+            "title": "Valid title",
+            "topics": ["x" * (COURSE_TOPIC_MAX_LENGTH + 1)],
+            "initial_difficulty": 1,
+            "is_public": False,
+        },
+    )
+    assert too_long_topic.status_code == 422
+
+    too_many_topics = await api_client.post(
+        "/courses/",
+        json={
+            "title": "Valid title",
+            "topics": [
+                f"Topic {index}"
+                for index in range(COURSE_TOPICS_MAX_COUNT + 1)
+            ],
+            "initial_difficulty": 1,
+            "is_public": False,
+        },
+    )
+    assert too_many_topics.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_public_search_rejects_too_long_query(api_client) -> None:
+    response = await api_client.get(
+        "/courses/public",
+        params={"q": "x" * (PUBLIC_COURSE_SEARCH_MAX_LENGTH + 1)},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_course_actions_reject_non_positive_path_ids(api_client) -> None:
+    await api_client.post(
+        "/auth/register",
+        json={
+            "email": "invalid-path@example.com",
+            "password": "secret123",
+            "username": "invalid-path",
+        },
+    )
+
+    progress = await api_client.get("/courses/0/progress")
+    assert progress.status_code == 422
+
+    submit = await api_client.post(
+        "/courses/0/1/submit",
+        json={
+            "answers": [
+                {
+                    "question_id": 1,
+                    "selected_option_ids": [1],
+                }
+            ]
+        },
+    )
+    assert submit.status_code == 422

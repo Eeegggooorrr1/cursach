@@ -1,29 +1,39 @@
-from pydantic import (
-    EmailStr,
-    model_validator,
-)
+from typing import Annotated
+
+from pydantic import EmailStr, Field, StringConstraints
 
 from models.user import RoleEnum
 from schemas.base import OrmSchema, StrictSchema
+from schemas.validation import (
+    PROFILE_DESCRIPTION_MAX_LENGTH,
+    USERNAME_MAX_LENGTH,
+    USERNAME_MIN_LENGTH,
+)
 
 
 class UserCreateSchema(StrictSchema):
     email: EmailStr
-    username: str
+    username: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True,
+            min_length=USERNAME_MIN_LENGTH,
+            max_length=USERNAME_MAX_LENGTH,
+        ),
+    ]
     password: str
-    profile_description: str | None = None
+    profile_description: Annotated[
+        str,
+        Field(max_length=PROFILE_DESCRIPTION_MAX_LENGTH),
+    ] | None = None
     role: RoleEnum | None = None
-
-    @model_validator(mode="after")
-    def normalize_user(self):
-        self.username = self.username.strip()
-        if not self.username:
-            raise ValueError("username cannot be empty")
-        return self
 
 
 class UserUpdateSchema(StrictSchema):
-    profile_description: str | None = None
+    profile_description: Annotated[
+        str,
+        Field(max_length=PROFILE_DESCRIPTION_MAX_LENGTH),
+    ] | None = None
 
 
 class UserFilterSchema(StrictSchema):

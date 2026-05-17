@@ -2,7 +2,7 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from core.auth import RequireRoles
 from models.user import RoleEnum
@@ -38,7 +38,7 @@ async def get_blocked_users(
 
 @router.patch("/users/{user_id}/block", description="Заблокировать пользователя")
 async def block_user(
-    user_id: int,
+    user_id: Annotated[int, Path(gt=0)],
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
     admin_service: FromDishka[AdminService],
 ) -> AdminUserSchema:
@@ -50,7 +50,7 @@ async def block_user(
 
 @router.patch("/users/{user_id}/unblock", description="Разблокировать пользователя")
 async def unblock_user(
-    user_id: int,
+    user_id: Annotated[int, Path(gt=0)],
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
     admin_service: FromDishka[AdminService],
 ) -> AdminUserSchema:
@@ -78,7 +78,7 @@ async def get_restricted_courses(
     description="Убрать курс из публичного доступа без возможности возврата",
 )
 async def restrict_course_public_access(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
     admin_service: FromDishka[AdminService],
 ) -> CourseDetailSchema:
@@ -93,7 +93,7 @@ async def restrict_course_public_access(
     description="Вернуть курсу возможность публиковаться",
 )
 async def restore_course_public_access(
-    course_id: int,
+    course_id: Annotated[int, Path(gt=0)],
     user: Annotated[UserFromToken, Depends(RequireRoles(RoleEnum.ADMIN))],
     admin_service: FromDishka[AdminService],
 ) -> CourseDetailSchema:

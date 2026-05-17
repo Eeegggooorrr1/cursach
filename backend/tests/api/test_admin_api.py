@@ -133,3 +133,26 @@ async def test_admin_blocks_user_and_guard_uses_token_blocked_claim(
     use_auth_cookies(api_client, unblocked_claim_cookies)
     allowed = await api_client.get("/profile/")
     assert allowed.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_admin_actions_reject_non_positive_ids(
+    api_client,
+    db_session,
+    test_settings,
+) -> None:
+    admin = await create_user(
+        db_session,
+        email="invalid-admin@example.com",
+        username="invalid-admin",
+        role_id=2,
+    )
+    await db_session.commit()
+
+    use_auth_cookies(api_client, auth_cookies_for_user(admin, test_settings))
+
+    block = await api_client.patch("/admin/users/0/block")
+    assert block.status_code == 422
+
+    restrict = await api_client.patch("/admin/courses/0/restrict-public")
+    assert restrict.status_code == 422

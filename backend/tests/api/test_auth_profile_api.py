@@ -1,6 +1,11 @@
 import pytest
 
 from core.auth.tokens import REFRESH_TOKEN_COOKIE
+from schemas.validation import (
+    AUTH_PASSWORD_MIN_LENGTH,
+    PROFILE_DESCRIPTION_MAX_LENGTH,
+    USERNAME_MAX_LENGTH,
+)
 
 
 pytestmark = [pytest.mark.api, pytest.mark.integration]
@@ -114,3 +119,47 @@ async def test_refresh_rotates_refresh_token_and_old_one_is_rejected(
     api_client.cookies.set(REFRESH_TOKEN_COOKIE, old_refresh_token)
     replay = await api_client.post("/auth/refresh")
     assert replay.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_register_rejects_invalid_user_input(api_client) -> None:
+    too_long_username = "u" * (USERNAME_MAX_LENGTH + 1)
+
+    response = await api_client.post(
+        "/auth/register",
+        json={
+            "email": "invalid-register@example.com",
+            "password": "x" * AUTH_PASSWORD_MIN_LENGTH,
+            "username": too_long_username,
+        },
+    )
+    assert response.status_code == 422
+
+    short_password = await api_client.post(
+        "/auth/register",
+        json={
+            "email": "short-password@example.com",
+            "password": "x" * (AUTH_PASSWORD_MIN_LENGTH - 1),
+            "username": "valid-user",
+        },
+    )
+    assert short_password.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_profile_rejects_too_long_description(api_client) -> None:
+    await api_client.post(
+        "/auth/register",
+        json={
+            "email": "long-profile@example.com",
+            "password": "secret123",
+            "username": "long-profile",
+        },
+    )
+
+    response = await api_client.patch(
+        "/profile/",
+        json={"profile_description": "x" * (PROFILE_DESCRIPTION_MAX_LENGTH + 1)},
+    )
+
+    assert response.status_code == 422
