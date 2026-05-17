@@ -1,15 +1,53 @@
-from pydantic import Field, model_validator
+from typing import Annotated
+
+from pydantic import Field, PositiveInt, StringConstraints, model_validator
 
 from schemas.base import OrmSchema, StrictSchema
+from schemas.validation import (
+    COURSE_TOPIC_MAX_LENGTH,
+    MULTIPLE_CHOICE_OPTIONS_MAX,
+    MULTIPLE_CHOICE_OPTIONS_MIN,
+    SINGLE_CHOICE_OPTIONS_MAX,
+    SINGLE_CHOICE_OPTIONS_MIN,
+    TEST_QUESTIONS_MAX_COUNT,
+    TEST_QUESTIONS_MIN_COUNT,
+)
 
 
 class TestCreateSchema(StrictSchema):
-    topic: str
-    questions_count: int = Field(default=10, ge=10, le=24)
-    single_choice_options_min: int = Field(default=2, ge=2, le=6)
-    single_choice_options_max: int = Field(default=6, ge=2, le=6)
-    multiple_choice_options_min: int = Field(default=3, ge=3, le=9)
-    multiple_choice_options_max: int = Field(default=9, ge=3, le=9)
+    topic: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True,
+            min_length=1,
+            max_length=COURSE_TOPIC_MAX_LENGTH,
+        ),
+    ]
+    questions_count: int = Field(
+        default=TEST_QUESTIONS_MIN_COUNT,
+        ge=TEST_QUESTIONS_MIN_COUNT,
+        le=TEST_QUESTIONS_MAX_COUNT,
+    )
+    single_choice_options_min: int = Field(
+        default=SINGLE_CHOICE_OPTIONS_MIN,
+        ge=SINGLE_CHOICE_OPTIONS_MIN,
+        le=SINGLE_CHOICE_OPTIONS_MAX,
+    )
+    single_choice_options_max: int = Field(
+        default=SINGLE_CHOICE_OPTIONS_MAX,
+        ge=SINGLE_CHOICE_OPTIONS_MIN,
+        le=SINGLE_CHOICE_OPTIONS_MAX,
+    )
+    multiple_choice_options_min: int = Field(
+        default=MULTIPLE_CHOICE_OPTIONS_MIN,
+        ge=MULTIPLE_CHOICE_OPTIONS_MIN,
+        le=MULTIPLE_CHOICE_OPTIONS_MAX,
+    )
+    multiple_choice_options_max: int = Field(
+        default=MULTIPLE_CHOICE_OPTIONS_MAX,
+        ge=MULTIPLE_CHOICE_OPTIONS_MIN,
+        le=MULTIPLE_CHOICE_OPTIONS_MAX,
+    )
 
     @model_validator(mode="after")
     def validate_ranges(self):
@@ -45,8 +83,11 @@ class TestReadSchema(OrmSchema):
 
 
 class SubmitAnswerSchema(StrictSchema):
-    question_id: int
-    selected_option_ids: list[int] = Field(min_length=1)
+    question_id: PositiveInt
+    selected_option_ids: list[PositiveInt] = Field(
+        min_length=1,
+        max_length=MULTIPLE_CHOICE_OPTIONS_MAX,
+    )
 
     @model_validator(mode="after")
     def validate_unique_options(self):
@@ -56,7 +97,10 @@ class SubmitAnswerSchema(StrictSchema):
 
 
 class TestSubmitSchema(StrictSchema):
-    answers: list[SubmitAnswerSchema] = Field(min_length=1)
+    answers: list[SubmitAnswerSchema] = Field(
+        min_length=1,
+        max_length=TEST_QUESTIONS_MAX_COUNT,
+    )
 
     @model_validator(mode="after")
     def validate_unique_questions(self):

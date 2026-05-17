@@ -22,7 +22,7 @@
         <form class="form-grid" @submit.prevent="submit">
           <div class="field">
             <label class="field__label" for="title">Название</label>
-            <input id="title" v-model.trim="form.title" class="input" type="text" required />
+            <input id="title" v-model.trim="form.title" class="input" type="text" required :maxlength="COURSE_TITLE_MAX_LENGTH" />
           </div>
 
           <div class="field">
@@ -31,6 +31,7 @@
               id="comment"
               v-model.trim="form.comment"
               class="textarea"
+              :maxlength="COURSE_TEXT_MAX_LENGTH"
               placeholder="Что это за курс и для кого он нужен"
             ></textarea>
           </div>
@@ -41,6 +42,7 @@
               id="prompt"
               v-model.trim="form.prompt"
               class="textarea"
+              :maxlength="COURSE_PROMPT_MAX_LENGTH"
               placeholder="Например: больше практики, меньше определений"
             ></textarea>
           </div>
@@ -72,11 +74,14 @@
                 v-model.trim="topicInput"
                 class="input"
                 type="text"
+                :maxlength="COURSE_TOPIC_MAX_LENGTH"
                 placeholder="Например: SQLAlchemy"
                 @keydown.enter.prevent="addTopic"
               />
-              <button class="button button--secondary" type="button" @click="addTopic">Добавить</button>
+              <button class="button button--secondary" type="button" :disabled="topics.length >= COURSE_TOPICS_MAX_COUNT" @click="addTopic">Добавить</button>
             </div>
+            <small class="field__hint">{{ topics.length }} / {{ COURSE_TOPICS_MAX_COUNT }}</small>
+            <div v-if="topicError" class="field__error">{{ topicError }}</div>
             <div v-if="topics.length" class="chips">
               <span v-for="topic in topics" :key="topic" class="chip">
                 {{ topic }}
@@ -101,6 +106,13 @@ import { computed, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { api, ApiError } from '@/api/client'
 import type { DifficultyLevel } from '@/api/types'
+import {
+  COURSE_PROMPT_MAX_LENGTH,
+  COURSE_TEXT_MAX_LENGTH,
+  COURSE_TITLE_MAX_LENGTH,
+  COURSE_TOPIC_MAX_LENGTH,
+  COURSE_TOPICS_MAX_COUNT,
+} from '@/constants/validation'
 
 const router = useRouter()
 
@@ -108,6 +120,7 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 const topicInput = ref('')
+const topicError = ref('')
 const topics = ref<string[]>([])
 const form = reactive({
   title: '',
@@ -128,13 +141,26 @@ const payload = computed(() => ({
 
 function addTopic() {
   const value = topicInput.value.trim()
+  topicError.value = ''
   if (!value) {
+    return
+  }
+
+  if (topics.value.length >= COURSE_TOPICS_MAX_COUNT) {
+    topicError.value = `Можно добавить не больше ${COURSE_TOPICS_MAX_COUNT} тем.`
+    return
+  }
+
+  if (value.length > COURSE_TOPIC_MAX_LENGTH) {
+    topicError.value = `Тема должна быть не длиннее ${COURSE_TOPIC_MAX_LENGTH} символов.`
     return
   }
 
   const normalized = value.toLowerCase()
   if (!topics.value.some((topic) => topic.toLowerCase() === normalized)) {
     topics.value = [...topics.value, value]
+  } else {
+    topicError.value = 'Такая тема уже добавлена.'
   }
   topicInput.value = ''
 }

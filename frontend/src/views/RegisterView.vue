@@ -11,7 +11,7 @@
         <form class="form-grid" @submit.prevent="submit">
           <div class="field">
             <label class="field__label" for="username">Имя пользователя</label>
-            <input id="username" v-model.trim="form.username" class="input" type="text" autocomplete="username" required />
+            <input id="username" v-model.trim="form.username" class="input" type="text" autocomplete="username" required :minlength="USERNAME_MIN_LENGTH" :maxlength="USERNAME_MAX_LENGTH" />
           </div>
 
           <div class="field">
@@ -21,7 +21,7 @@
 
           <div class="field">
             <label class="field__label" for="password">Пароль</label>
-            <input id="password" v-model="form.password" class="input" type="password" autocomplete="new-password" required />
+            <input id="password" v-model="form.password" class="input" type="password" autocomplete="new-password" required :minlength="AUTH_PASSWORD_MIN_LENGTH" :maxlength="AUTH_PASSWORD_MAX_LENGTH" />
           </div>
 
           <div class="field">
@@ -31,6 +31,7 @@
               v-model="form.profile_description"
               class="textarea"
               rows="4"
+              :maxlength="PROFILE_DESCRIPTION_MAX_LENGTH"
               placeholder="Можно оставить пустым"
             ></textarea>
           </div>
@@ -54,6 +55,13 @@
 import { reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/api/client'
+import {
+  AUTH_PASSWORD_MAX_LENGTH,
+  AUTH_PASSWORD_MIN_LENGTH,
+  PROFILE_DESCRIPTION_MAX_LENGTH,
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+} from '@/constants/validation'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()

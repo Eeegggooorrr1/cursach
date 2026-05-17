@@ -47,6 +47,7 @@
                 v-model="form.profile_description"
                 class="textarea"
                 rows="6"
+                :maxlength="PROFILE_DESCRIPTION_MAX_LENGTH"
                 placeholder="Расскажите коротко о себе или своих учебных целях"
               ></textarea>
             </div>
@@ -68,6 +69,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError } from '@/api/client'
 import type { UserProfile } from '@/api/types'
+import { PROFILE_DESCRIPTION_MAX_LENGTH } from '@/constants/validation'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()

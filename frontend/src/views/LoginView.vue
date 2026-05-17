@@ -16,7 +16,7 @@
 
           <div class="field">
             <label class="field__label" for="password">Пароль</label>
-            <input id="password" v-model="form.password" class="input" type="password" autocomplete="current-password" required />
+            <input id="password" v-model="form.password" class="input" type="password" autocomplete="current-password" required :maxlength="AUTH_PASSWORD_MAX_LENGTH" />
           </div>
 
           <div v-if="error" class="notice notice--error">{{ error }}</div>
@@ -38,6 +38,7 @@
 import { reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/api/client'
+import { AUTH_PASSWORD_MAX_LENGTH } from '@/constants/validation'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()

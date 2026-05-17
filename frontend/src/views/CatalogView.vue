@@ -8,6 +8,7 @@
         <input
           v-model.trim="filters.query"
           type="search"
+          :maxlength="PUBLIC_COURSE_SEARCH_MAX_LENGTH"
           placeholder="Название или описание курса"
         />
         <button type="submit" :disabled="loading">Найти</button>
@@ -69,6 +70,7 @@ import { api } from '@/api/client'
 import type { CourseListItem, PaginationMeta } from '@/api/types'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import { useRequestState } from '@/composables/useRequestState'
+import { PUBLIC_COURSE_SEARCH_MAX_LENGTH } from '@/constants/validation'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/format'
 
