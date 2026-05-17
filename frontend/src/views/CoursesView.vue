@@ -51,7 +51,7 @@
       <div class="main-column">
         <article class="focus-panel reveal">
           <div class="focus-panel__media">
-            <div class="test-score-orbit">
+            <div class="test-score-orbit" :style="lastTestScoreStyle">
               <strong>{{ lastTestScore }}</strong>
               <span>верно</span>
             </div>
@@ -181,6 +181,16 @@ const lastTestScore = computed(() => {
     return '--'
   }
   return formatPercent(summary.value.last_test.correct_percentage)
+})
+const lastTestScoreStyle = computed(() => {
+  const value = summary.value?.last_test?.correct_percentage
+  const percent = Number.isFinite(Number(value))
+    ? Math.max(0, Math.min(100, Number(value)))
+    : 0
+
+  return {
+    '--last-test-score': `${percent}%`,
+  }
 })
 
 async function loadCourses() {

@@ -186,7 +186,7 @@
   border-radius: 50%;
   background:
     radial-gradient(circle at center, rgba(255, 255, 255, 0.18) 0 47%, transparent 48%),
-    conic-gradient(#8be4c0 0 15%, rgba(255, 255, 255, 0.16) 15% 100%);
+    conic-gradient(#8be4c0 0 var(--last-test-score, 0%), rgba(255, 255, 255, 0.16) var(--last-test-score, 0%) 100%);
   animation: pulseRing 2.8s ease-in-out infinite;
 }
 
