@@ -1,7 +1,6 @@
 [
   {
     "model": "models.user.User",
-    "id": 1,
     "fields": {
       "email": "admin@admin.com",
       "password": "$2b$12$f2I1wTEmy6mMI3NIfd9kM.muZ7YEKQqioo1Q.2DGGLF5jR0z231Zy",
