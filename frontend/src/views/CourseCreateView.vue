@@ -4,9 +4,6 @@
       <div class="page-header__copy">
         <p class="page-header__eyebrow">Новый курс</p>
         <h1 class="page-header__title">Собрать основу курса</h1>
-        <p class="page-header__text">
-          Сначала задаем тему, описание и направления, а структуру курса дальше соберет backend.
-        </p>
       </div>
 
       <div class="page-header__actions">
