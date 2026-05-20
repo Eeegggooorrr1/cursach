@@ -37,7 +37,8 @@ def upgrade() -> None:
     sa.Column('is_blocked', sa.Boolean(), nullable=False),
     sa.Column('role_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('email')
     )
     op.create_table('courses',
     sa.Column('id', sa.Integer(), nullable=False),

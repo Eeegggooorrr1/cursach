@@ -32,7 +32,7 @@ class User(Base):
         BigInteger, primary_key=True, autoincrement=True
     )
 
-    email: Mapped[str]
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str]
     username: Mapped[str]
     profile_description: Mapped[str | None] = mapped_column(
